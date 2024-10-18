@@ -832,7 +832,7 @@ GameObject:
   - component: {fileID: 772921829}
   - component: {fileID: 772921828}
   - component: {fileID: 772921827}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Platform
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3794,14 +3794,6 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3703664281559557362, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
       propertyPath: speed
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 3703664281559557362, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
-      propertyPath: runSpeed
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 3703664281559557362, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
-      propertyPath: walkSpeed
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5556132279435969945, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
