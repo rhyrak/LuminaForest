@@ -687,6 +687,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8157562644395228921, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
   m_PrefabInstance: {fileID: 1339656931732398094}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &596792131 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3703664281559557362, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
+  m_PrefabInstance: {fileID: 1339656931732398094}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d71b78d581afb1742b285680384b1521, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &640024498
 GameObject:
   m_ObjectHideFlags: 0
@@ -4006,6 +4017,34 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1852320490692904710, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
+      propertyPath: m_ActionEvents.Array.data[13].m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1852320490692904710, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
+      propertyPath: m_ActionEvents.Array.data[13].m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1852320490692904710, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
+      propertyPath: m_ActionEvents.Array.data[13].m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 596792131}
+    - target: {fileID: 1852320490692904710, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
+      propertyPath: m_ActionEvents.Array.data[13].m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1852320490692904710, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
+      propertyPath: m_ActionEvents.Array.data[13].m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: OnRun
+      objectReference: {fileID: 0}
+    - target: {fileID: 1852320490692904710, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
+      propertyPath: m_ActionEvents.Array.data[13].m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: PlayerController, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 1852320490692904710, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
+      propertyPath: m_ActionEvents.Array.data[13].m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
     - target: {fileID: 3703664281559557362, guid: fa7780a9c6a1058469185e389c7fda80, type: 3}
       propertyPath: speed
       value: 2
@@ -4123,6 +4162,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: GreenSlime
       objectReference: {fileID: 0}
+    - target: {fileID: 7736982345574371902, guid: 047d6ca520a61774a8730add6d92f54a, type: 3}
+      propertyPath: m_Material
+      value: 
+      objectReference: {fileID: 6200000, guid: 0fd90d4785a0435509097bfd9a7be9f5, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
