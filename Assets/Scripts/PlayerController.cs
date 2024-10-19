@@ -7,17 +7,30 @@ using UnityEngine.UIElements;
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private float walkSpeed = 4f;
+    [SerializeField] private float walkSpeed = 2f;
+    [SerializeField] private float airGlideSpeed = 2f;
     [SerializeField] private float jumpForce = 5f;
-    [SerializeField] private float runSpeed = 8f;
+    [SerializeField] private float runSpeed = 4f;
+    [SerializeField] private int health = 2;
+    [SerializeField] private float dashStrength = 20f;
+    [SerializeField] private float dashDuration = 0.5f;
+    [SerializeField] private float dashStamina = 20f;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Vector2 boxSize;
     [SerializeField] private float castDistance;
+
+    private Rigidbody2D _rigidBody2D;
+    private Animator _animator;
+    private Vector3 originalScale;
+    private Vector2 moveInput;
+    private float timer = 0f;
+    private bool hasDashed = false;
 
     private bool _isMoving = false;
     private bool _isRunning = false;
     private bool _isGrounded = false;
     private bool _isJumping = false;
+    private bool _isDashing = false;
 
     public bool IsMoving
     {
@@ -67,21 +80,31 @@ public class PlayerController : MonoBehaviour
             _animator.SetBool("isJumping", value);
         }
     }
+    public bool IsDashing
+    {
+        get
+        {
+            return _isDashing;
+        }
+        private set
+        {
+            _isDashing = value;
+            _animator.SetBool("isDashing", value);
+        }
+    }
     public float CurrentMoveSpeed
     {
         get
         {
             if (IsMoving)
-                return IsRunning ? runSpeed : walkSpeed;
+                if (!IsGrounded)
+                    return airGlideSpeed;
+                else
+                    return IsRunning ? runSpeed : walkSpeed;
             else
                 return 0;
         }
     }
-
-    private Rigidbody2D _rigidBody2D;
-    private Animator _animator;
-    private Vector3 originalScale;
-    private Vector2 moveInput;
 
     void Awake()
     {
@@ -94,10 +117,81 @@ public class PlayerController : MonoBehaviour
     {
     }
 
-    // Update is called once per frame
     void Update()
     {
+        if (gameObject == null)
+        {
+            return;
+        }
+
+        if (health <= 0)
+        {
+            _animator.enabled = false;
+            Destroy(gameObject);
+        }
+
         FlipSprite();
+
+        timer += Time.deltaTime;
+        if (timer >= dashDuration)
+        {
+            IsDashing = false;
+            hasDashed = false;
+            timer = 0f;
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (gameObject == null)
+        {
+            return;
+        }
+
+        // Update Horizontal Velocity
+        _rigidBody2D.velocity = new Vector2(moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
+
+        if (CheckIsGrounded() && !IsJumping)
+        {
+            IsGrounded = true;
+        }
+
+        // Update Vertical Velocity
+        if (IsJumping)
+        {
+            _rigidBody2D.AddForce(new Vector2(0, jumpForce), ForceMode2D.Impulse);
+            IsJumping = false;
+        }
+
+        if (IsDashing && !hasDashed)
+        {
+            float dashDirection = transform.localScale.x;
+            _rigidBody2D.velocity = new Vector2(dashDirection * dashStrength, 0);
+            _rigidBody2D.AddForce(new Vector2(dashDirection * dashStrength, 0), ForceMode2D.Impulse);
+            hasDashed = true;
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            // Disable the animator first
+            Animator slimeAnimator = collision.gameObject.GetComponent<Animator>();
+            if (slimeAnimator != null)
+            {
+                slimeAnimator.enabled = false;
+            }
+
+            // Destroy the slime object
+            Destroy(collision.gameObject);
+
+            // Decrement health
+            if (!IsDashing) /** Player is invincible whilst dashing */
+            {
+                health--;
+            }
+        }
     }
 
     // Handles movement
@@ -129,6 +223,17 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    public void OnFire(InputAction.CallbackContext context)
+    {
+        if (context.started && dashStamina > 0 && !IsDashing)
+        {
+            IsDashing = true;
+            dashStamina -= 2f;
+            _rigidBody2D.velocity = new Vector2(moveInput.x * dashStrength, 0);
+            _rigidBody2D.AddForce(new Vector2(dashStrength, 0), ForceMode2D.Force);
+        }
+    }
+
     // Handles sprite flipping based on movement direction
     private void FlipSprite()
     {
@@ -156,24 +261,11 @@ public class PlayerController : MonoBehaviour
 
     private void OnDrawGizmos()
     {
+        if (gameObject == null)
+        {
+            return;
+        }
+
         Gizmos.DrawWireCube(transform.position - transform.up * castDistance, boxSize);
-    }
-
-    void FixedUpdate()
-    {
-        // Update Horizontal Velocity
-        _rigidBody2D.velocity = new Vector2(moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
-
-        if (CheckIsGrounded() && !IsJumping)
-        {
-            IsGrounded = true;
-        }
-
-        // Update Vertical Velocity
-        if (IsJumping)
-        {
-            _rigidBody2D.AddForce(new Vector2(0, jumpForce), ForceMode2D.Impulse);
-            IsJumping = false;
-        }
     }
 }
