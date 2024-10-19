@@ -1,29 +1,115 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private float walkSpeed = 4f;
+    [SerializeField] private float walkSpeed = 2f;
+    [SerializeField] private float airGlideSpeed = 2f;
     [SerializeField] private float jumpForce = 5f;
-    [SerializeField] private float runSpeed = 8f;
+    [SerializeField] private float runSpeed = 4f;
+    [SerializeField] private int health = 2;
+    [SerializeField] private float dashStrength = 20f;
+    [SerializeField] private float dashDuration = 0.5f;
+    [SerializeField] private float dashStamina = 20f;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Vector2 boxSize;
     [SerializeField] private float castDistance;
 
-
-    public bool IsWalking { get; private set; } = false;
-    public bool IsRunning { get; private set; } = false;
     private Rigidbody2D _rigidBody2D;
+    private Animator _animator;
     private Vector3 originalScale;
-    private float horizontalInput;
-    private bool isJumping = false;
+    private Vector2 moveInput;
+    private float timer = 0f;
+    private bool hasDashed = false;
+
+    private bool _isMoving = false;
+    private bool _isRunning = false;
+    private bool _isGrounded = false;
+    private bool _isJumping = false;
+    private bool _isDashing = false;
+
+    public bool IsMoving
+    {
+        get
+        {
+            return _isMoving;
+        }
+        private set
+        {
+            _isMoving = value;
+            _animator.SetBool("isMoving", value);
+        }
+    }
+    public bool IsRunning
+    {
+        get
+        {
+            return _isRunning;
+        }
+        private set
+        {
+            _isRunning = value;
+            _animator.SetBool("isRunning", value);
+        }
+    }
+    public bool IsGrounded
+    {
+        get
+        {
+            return _isGrounded;
+        }
+        private set
+        {
+            _isGrounded = value;
+            _animator.SetBool("isGrounded", value);
+        }
+    }
+    public bool IsJumping
+    {
+        get
+        {
+            return _isJumping;
+        }
+        private set
+        {
+            _isJumping = value;
+            _animator.SetBool("isJumping", value);
+        }
+    }
+    public bool IsDashing
+    {
+        get
+        {
+            return _isDashing;
+        }
+        private set
+        {
+            _isDashing = value;
+            _animator.SetBool("isDashing", value);
+        }
+    }
+    public float CurrentMoveSpeed
+    {
+        get
+        {
+            if (IsMoving)
+                if (!IsGrounded)
+                    return airGlideSpeed;
+                else
+                    return IsRunning ? runSpeed : walkSpeed;
+            else
+                return 0;
+        }
+    }
 
     void Awake()
     {
         _rigidBody2D = GetComponent<Rigidbody2D>();
+        _animator = GetComponent<Animator>();
         originalScale = transform.localScale;
     }
 
@@ -31,45 +117,137 @@ public class PlayerController : MonoBehaviour
     {
     }
 
-    // Update is called once per frame
     void Update()
     {
-        HandleMovement();
-        HandleJump();
-        FlipSprite();
-    }
-
-    // Handles horizontal movement
-    private void HandleMovement()
-    {
-        horizontalInput = Input.GetAxis("Horizontal");
-    }
-
-    // Handles jumping logic
-    private void HandleJump()
-    {
-        if (IsGrounded() && Input.GetButton("Jump"))
+        if (gameObject == null)
         {
-            isJumping = true; // Set the jump flag
+            return;
+        }
+
+        if (health <= 0)
+        {
+            _animator.enabled = false;
+            Destroy(gameObject);
+        }
+
+        FlipSprite();
+
+        timer += Time.deltaTime;
+        if (timer >= dashDuration)
+        {
+            IsDashing = false;
+            hasDashed = false;
+            timer = 0f;
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (gameObject == null)
+        {
+            return;
+        }
+
+        // Update Horizontal Velocity
+        _rigidBody2D.velocity = new Vector2(moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
+
+        if (CheckIsGrounded() && !IsJumping)
+        {
+            IsGrounded = true;
+        }
+
+        // Update Vertical Velocity
+        if (IsJumping)
+        {
+            _rigidBody2D.AddForce(new Vector2(0, jumpForce), ForceMode2D.Impulse);
+            IsJumping = false;
+        }
+
+        if (IsDashing && !hasDashed)
+        {
+            float dashDirection = transform.localScale.x;
+            _rigidBody2D.velocity = new Vector2(dashDirection * dashStrength, 0);
+            _rigidBody2D.AddForce(new Vector2(dashDirection * dashStrength, 0), ForceMode2D.Impulse);
+            hasDashed = true;
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            // Disable the animator first
+            Animator slimeAnimator = collision.gameObject.GetComponent<Animator>();
+            if (slimeAnimator != null)
+            {
+                slimeAnimator.enabled = false;
+            }
+
+            // Destroy the slime object
+            Destroy(collision.gameObject);
+
+            // Decrement health
+            if (!IsDashing) /** Player is invincible whilst dashing */
+            {
+                health--;
+            }
+        }
+    }
+
+    // Handles movement
+    public void OnMove(InputAction.CallbackContext context)
+    {
+        moveInput = context.ReadValue<Vector2>();
+
+        IsMoving = moveInput.x != 0;
+    }
+
+    public void OnRun(InputAction.CallbackContext context)
+    {
+        if (context.started)
+        {
+            IsRunning = true;
+        }
+        else if (context.canceled)
+        {
+            IsRunning = false;
+        }
+    }
+
+    public void OnJump(InputAction.CallbackContext context)
+    {
+        if (context.started && CheckIsGrounded())
+        {
+            IsJumping = true; // Set the jump flag
+            IsGrounded = false; // Set the grounded flag to false
+        }
+    }
+
+    public void OnFire(InputAction.CallbackContext context)
+    {
+        if (context.started && dashStamina > 0 && !IsDashing)
+        {
+            IsDashing = true;
+            dashStamina -= 2f;
+            _rigidBody2D.velocity = new Vector2(moveInput.x * dashStrength, 0);
+            _rigidBody2D.AddForce(new Vector2(dashStrength, 0), ForceMode2D.Force);
         }
     }
 
     // Handles sprite flipping based on movement direction
     private void FlipSprite()
     {
-        float moveInput = Input.GetAxis("Horizontal");
-
-        if (moveInput < 0) // Moving left
+        if (moveInput.x < 0) // Moving left
         {
             transform.localScale = new Vector3(-Mathf.Abs(originalScale.x), originalScale.y, originalScale.z);
         }
-        else if (moveInput > 0) // Moving right
+        else if (moveInput.x > 0) // Moving right
         {
             transform.localScale = new Vector3(Mathf.Abs(originalScale.x), originalScale.y, originalScale.z);
         }
     }
 
-    public bool IsGrounded()
+    public bool CheckIsGrounded()
     {
         if (Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, castDistance, groundLayer))
         {
@@ -83,19 +261,11 @@ public class PlayerController : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        Gizmos.DrawWireCube(transform.position - transform.up * castDistance, boxSize);
-    }
-
-    void FixedUpdate()
-    {
-        // Update Horizontal Velocity
-        _rigidBody2D.velocity = new Vector2(horizontalInput * walkSpeed, _rigidBody2D.velocity.y);
-
-        // Update Vertical Velocity
-        if (isJumping)
+        if (gameObject == null)
         {
-            _rigidBody2D.AddForce(new Vector2(0, jumpForce), ForceMode2D.Impulse);
-            isJumping = false;  // Reset the jump flag
+            return;
         }
+
+        Gizmos.DrawWireCube(transform.position - transform.up * castDistance, boxSize);
     }
 }
