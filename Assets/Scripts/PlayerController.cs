@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UIElements;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -18,13 +20,16 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Vector2 boxSize;
     [SerializeField] private float castDistance;
+    [SerializeField] private Volume GlobalVolume;
 
     private Rigidbody2D _rigidBody2D;
     private Animator _animator;
     private Vector3 originalScale;
     private Vector2 moveInput;
-    private float timer = 0f;
+    private float dashTimer = 0f;
     private bool hasDashed = false;
+    private bool runChromaticAberration = false;
+    private float chromaTimer = 0f;
 
     private bool _isMoving = false;
     private bool _isRunning = false;
@@ -132,12 +137,25 @@ public class PlayerController : MonoBehaviour
 
         FlipSprite();
 
-        timer += Time.deltaTime;
-        if (timer >= dashDuration)
+        if (hasDashed)
+            dashTimer += Time.deltaTime;
+        if (dashTimer >= dashDuration)
         {
             IsDashing = false;
             hasDashed = false;
-            timer = 0f;
+            dashTimer = 0f;
+        }
+        if (runChromaticAberration)
+        {
+            chromaTimer -= Time.deltaTime;
+            ChromaticAberration chromaticAberration;
+            GlobalVolume.profile.TryGet(out chromaticAberration);
+            chromaticAberration.intensity.Override(Mathf.Lerp(chromaticAberration.intensity.value, 0f, Mathf.Abs(1f - chromaTimer)));
+            if (chromaTimer <= 0.0f)
+            {
+                runChromaticAberration = false;
+                chromaticAberration.intensity.Override(0.0f);
+            }
         }
     }
 
@@ -149,7 +167,15 @@ public class PlayerController : MonoBehaviour
         }
 
         // Update Horizontal Velocity
-        _rigidBody2D.velocity = new Vector2(moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
+        if (hasDashed)
+        {
+            float dashDirection = transform.localScale.x;
+            _rigidBody2D.velocity = new Vector2(dashDirection * dashStrength, 0);
+        }
+        else
+        {
+            _rigidBody2D.velocity = new Vector2(moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
+        }
 
         if (CheckIsGrounded() && !IsJumping)
         {
@@ -165,10 +191,12 @@ public class PlayerController : MonoBehaviour
 
         if (IsDashing && !hasDashed)
         {
-            float dashDirection = transform.localScale.x;
-            _rigidBody2D.velocity = new Vector2(dashDirection * dashStrength, 0);
-            _rigidBody2D.AddForce(new Vector2(dashDirection * dashStrength, 0), ForceMode2D.Impulse);
+            // float dashDirection = transform.localScale.x;
+            // _rigidBody2D.velocity = new Vector2(dashDirection * dashStrength, 0);
+            // _rigidBody2D.AddForce(new Vector2(dashDirection * dashStrength, 0), ForceMode2D.Impulse);
             hasDashed = true;
+            runChromaticAberration = true;
+            chromaTimer = 1.0f;
         }
     }
 
@@ -227,6 +255,9 @@ public class PlayerController : MonoBehaviour
     {
         if (context.started && dashStamina > 0 && !IsDashing)
         {
+            ChromaticAberration chromaticAberration;
+            GlobalVolume.profile.TryGet(out chromaticAberration);
+            chromaticAberration.intensity.Override(1.0f);
             IsDashing = true;
             dashStamina -= 2f;
             _rigidBody2D.velocity = new Vector2(moveInput.x * dashStrength, 0);
