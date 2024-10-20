@@ -97,9 +97,9 @@ GameObject:
   - component: {fileID: 3274685205702736539}
   - component: {fileID: 3445389073563116991}
   - component: {fileID: 7950158315643666935}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: BossSlime
-  m_TagString: Enemy
+  m_TagString: Boss
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -129,7 +129,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 5729157383298898547}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e9d2895570c5ca5a882286fa548c441a, type: 3}
+  m_Script: {fileID: 11500000, guid: 200cde37cea7aaf3faedab7685db0487, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   walkSpeed: 4

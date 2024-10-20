@@ -59,12 +59,8 @@ public class SlimeController : MonoBehaviour
         }
     }
 
-    public void TakeDamage(bool IsDashing)
+    public void TakeDamage()
     {
-        if (!IsDashing)
-        {
-            return;
-        }
         health--;
         if (health <= 0)
         {

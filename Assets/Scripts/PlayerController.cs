@@ -39,9 +39,11 @@ public class PlayerController : MonoBehaviour
     private bool _isJumping = false;
     private bool _isDashing = false;
 
+    private bool isBossKilled = false;
+
     public float MaxEnergy => maxDashStamina;
     public float CurrentEnergy => dashStamina;
-    public float knockbackForce = 5f;
+    public bool IsBossKilled => isBossKilled;
 
     public bool IsMoving
     {
@@ -135,9 +137,15 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        if (health <= 0)
+        if (health <= 0 || transform.position.y < -28)
         {
             _animator.enabled = false;
+            ColorAdjustments colorAdjustments;
+            GlobalVolume.profile.TryGet(out colorAdjustments);
+            colorAdjustments.active = true;
+            DepthOfField depthOfField;
+            GlobalVolume.profile.TryGet(out depthOfField);
+            depthOfField.active = true;
             Destroy(gameObject);
         }
 
@@ -219,29 +227,23 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Enemy"))
+        if (collision.gameObject.CompareTag("Enemy") || collision.gameObject.CompareTag("Boss"))
         {
             SlimeController enemy = collision.gameObject.GetComponent<SlimeController>();
             if (!enemy.isDead)
             {
-                enemy.TakeDamage(IsDashing);
                 // Decrement health
                 if (!IsDashing) /** Player is invincible whilst dashing */
                 {
                     health--;
                 }
-            }
-        }
-        if (collision.gameObject.CompareTag("Boss"))
-        {
-            BossController enemy = collision.gameObject.GetComponent<BossController>();
-            if (!enemy.isDead)
-            {
-                enemy.TakeDamage(IsDashing);
-                // Decrement health
-                if (!IsDashing) /** Player is invincible whilst dashing */
+                else
                 {
-                    health--;
+                    enemy.TakeDamage();
+                }
+                if (enemy.isDead && collision.gameObject.CompareTag("Boss"))
+                {
+                    isBossKilled = true;
                 }
             }
         }

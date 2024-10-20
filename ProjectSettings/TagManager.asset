@@ -8,6 +8,7 @@ TagManager:
   - Enemy
   - ManaZone
   - Boss
+  - Platform
   layers:
   - Default
   - TransparentFX
@@ -42,6 +43,18 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Parallax
+    uniqueID: 3888830077
+    locked: 0
+  - name: Enemies
+    uniqueID: 4209704909
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: ParallaxFront
+    uniqueID: 4294906267
+    locked: 0
+  - name: Platform
+    uniqueID: 2050331943
     locked: 0
