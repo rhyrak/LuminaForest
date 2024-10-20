@@ -28,6 +28,9 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
+        if (playerController == null)
+            return;
+
         Tutorial();
         var level = 280f * (playerController.CurrentEnergy / playerController.MaxEnergy);
         energyLevel.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, level);

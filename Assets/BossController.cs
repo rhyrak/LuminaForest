@@ -4,7 +4,7 @@ using UnityEngine.Rendering.Universal;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class SlimeController : MonoBehaviour
+public class BossController : MonoBehaviour
 {
     [SerializeField] private float walkSpeed = 4f;
     private Rigidbody2D _rigidBody2D;
@@ -12,7 +12,7 @@ public class SlimeController : MonoBehaviour
     private Animator _animator;
     private Light2D _light2D;
     private int walkDirection = 1;
-    private int health = 1;
+    private int health = 3;
     public bool isDead = false;
     public Vector2 velocity;
 
@@ -65,6 +65,7 @@ public class SlimeController : MonoBehaviour
         {
             return;
         }
+        _light2D.intensity -= 4.0f;
         health--;
         if (health <= 0)
         {

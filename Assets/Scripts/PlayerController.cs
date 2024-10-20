@@ -41,6 +41,7 @@ public class PlayerController : MonoBehaviour
 
     public float MaxEnergy => maxDashStamina;
     public float CurrentEnergy => dashStamina;
+    public float knockbackForce = 5f;
 
     public bool IsMoving
     {
@@ -160,6 +161,7 @@ public class PlayerController : MonoBehaviour
             {
                 runChromaticAberration = false;
                 chromaticAberration.intensity.Override(0.0f);
+                // gameObject.layer = LayerMask.NameToLayer("GhostPlayer");
             }
         }
 
@@ -211,6 +213,7 @@ public class PlayerController : MonoBehaviour
             hasDashed = true;
             runChromaticAberration = true;
             chromaTimer = 1.0f;
+            // gameObject.layer = LayerMask.NameToLayer("Player");
         }
     }
 
@@ -218,20 +221,28 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Enemy"))
         {
-            // Disable the animator first
-            Animator slimeAnimator = collision.gameObject.GetComponent<Animator>();
-            if (slimeAnimator != null)
+            SlimeController enemy = collision.gameObject.GetComponent<SlimeController>();
+            if (!enemy.isDead)
             {
-                slimeAnimator.enabled = false;
+                enemy.TakeDamage(IsDashing);
+                // Decrement health
+                if (!IsDashing) /** Player is invincible whilst dashing */
+                {
+                    health--;
+                }
             }
-
-            // Destroy the slime object
-            Destroy(collision.gameObject);
-
-            // Decrement health
-            if (!IsDashing) /** Player is invincible whilst dashing */
+        }
+        if (collision.gameObject.CompareTag("Boss"))
+        {
+            BossController enemy = collision.gameObject.GetComponent<BossController>();
+            if (!enemy.isDead)
             {
-                health--;
+                enemy.TakeDamage(IsDashing);
+                // Decrement health
+                if (!IsDashing) /** Player is invincible whilst dashing */
+                {
+                    health--;
+                }
             }
         }
     }
@@ -293,6 +304,7 @@ public class PlayerController : MonoBehaviour
             _rigidBody2D.AddForce(new Vector2(dashStrength, 0), ForceMode2D.Force);
         }
     }
+
 
     // Handles sprite flipping based on movement direction
     private void FlipSprite()

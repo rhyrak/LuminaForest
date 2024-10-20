@@ -58,11 +58,13 @@ MonoBehaviour:
   dashStrength: 20
   dashDuration: 0.5
   dashStamina: 10
+  maxDashStamina: 16
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
   boxSize: {x: 0.2, y: 0.1}
   castDistance: 0.345
+  GlobalVolume: {fileID: 0}
 --- !u!114 &1852320490692904710
 MonoBehaviour:
   m_ObjectHideFlags: 0
