@@ -6,6 +6,7 @@ TagManager:
   tags:
   - InvisibleWall
   - Enemy
+  - ManaZone
   layers:
   - Default
   - TransparentFX

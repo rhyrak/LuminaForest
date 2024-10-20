@@ -14,9 +14,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jumpForce = 5f;
     [SerializeField] private float runSpeed = 4f;
     [SerializeField] private int health = 2;
-    [SerializeField] private float dashStrength = 20f;
+    [SerializeField] private float dashStrength = 3f;
     [SerializeField] private float dashDuration = 0.5f;
-    [SerializeField] private float dashStamina = 20f;
+    [SerializeField] private float dashStamina = 0f;
+    [SerializeField] private float maxDashStamina = 16f;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Vector2 boxSize;
     [SerializeField] private float castDistance;
@@ -30,12 +31,16 @@ public class PlayerController : MonoBehaviour
     private bool hasDashed = false;
     private bool runChromaticAberration = false;
     private float chromaTimer = 0f;
+    private bool regenerating = false;
 
     private bool _isMoving = false;
     private bool _isRunning = false;
     private bool _isGrounded = false;
     private bool _isJumping = false;
     private bool _isDashing = false;
+
+    public float MaxEnergy => maxDashStamina;
+    public float CurrentEnergy => dashStamina;
 
     public bool IsMoving
     {
@@ -157,6 +162,15 @@ public class PlayerController : MonoBehaviour
                 chromaticAberration.intensity.Override(0.0f);
             }
         }
+
+        if (regenerating)
+        {
+            dashStamina += Time.deltaTime * 2;
+            if (dashStamina > maxDashStamina)
+            {
+                dashStamina = maxDashStamina;
+            }
+        }
     }
 
     void FixedUpdate()
@@ -219,6 +233,21 @@ public class PlayerController : MonoBehaviour
             {
                 health--;
             }
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("ManaZone"))
+        {
+            regenerating = true;
+        }
+    }
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("ManaZone"))
+        {
+            regenerating = false;
         }
     }
 
