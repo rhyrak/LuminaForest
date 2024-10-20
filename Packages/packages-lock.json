@@ -1,11 +1,5 @@
 {
   "dependencies": {
-    "ca.tim-cstj.export-project-to-zip": {
-      "version": "file:ca.tim-cstj.export-project-to-zip",
-      "depth": 0,
-      "source": "embedded",
-      "dependencies": {}
-    },
     "com.spoiledcat.git": {
       "version": "1.0.44",
       "depth": 0,
