@@ -12,9 +12,12 @@ public class SlimeController : MonoBehaviour
     private Animator _animator;
     private Light2D _light2D;
     private int walkDirection = 1;
-    private int health = 1;
+    public int health = 1;
     public bool isDead = false;
     public Vector2 velocity;
+
+    // Event to notify when this slime dies
+    public event System.Action<SlimeController> OnDeath;
 
     private void Awake()
     {
@@ -23,6 +26,7 @@ public class SlimeController : MonoBehaviour
         _animator = GetComponent<Animator>();
         _light2D = GetComponentInChildren<Light2D>();
     }
+
     void Start()
     {
         int rand = Random.Range(-1, 1);
@@ -34,11 +38,6 @@ public class SlimeController : MonoBehaviour
         {
             walkDirection = -1;
         }
-    }
-
-    void Update()
-    {
-
     }
 
     void FixedUpdate()
@@ -70,10 +69,15 @@ public class SlimeController : MonoBehaviour
 
     public void Die()
     {
+        if (isDead) return;
+
         isDead = true;
         gameObject.layer = LayerMask.NameToLayer("DeadEnemy");
         _animator.enabled = false;
         _light2D.intensity = 0.0f;
         _rigidBody2D.velocity = Vector2.zero;
+
+        // Trigger the OnDeath event
+        OnDeath?.Invoke(this);
     }
 }

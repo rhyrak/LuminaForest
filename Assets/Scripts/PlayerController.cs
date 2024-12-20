@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
     private Animator _animator;
     private Vector3 originalScale;
     private Vector2 moveInput;
+    private Vector2 baseVelocity;
     private float dashTimer = 0f;
     private bool hasDashed = false;
     private bool runChromaticAberration = false;
@@ -44,6 +45,9 @@ public class PlayerController : MonoBehaviour
     public float MaxEnergy => maxDashStamina;
     public float CurrentEnergy => dashStamina;
     public bool IsBossKilled => isBossKilled;
+
+    private Vector2 platformVelocity = Vector2.zero; // Velocity inherited from platform
+    private MovingPlatform currentPlatform;
 
     public bool IsMoving
     {
@@ -194,16 +198,25 @@ public class PlayerController : MonoBehaviour
         if (hasDashed)
         {
             float dashDirection = transform.localScale.x;
-            _rigidBody2D.velocity = new Vector2(dashDirection * dashStrength, 0);
+            baseVelocity = new Vector2(dashDirection * dashStrength, 0);
         }
         else
         {
-            _rigidBody2D.velocity = new Vector2(moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
+            baseVelocity = new Vector2(moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
         }
+
+        // update velocity
+        _rigidBody2D.velocity = baseVelocity + platformVelocity;
 
         if (CheckIsGrounded() && !IsJumping)
         {
             IsGrounded = true;
+        }
+        else
+        {
+            _isGrounded = false;
+            currentPlatform = null;
+            platformVelocity = Vector2.zero;
         }
 
         // Update Vertical Velocity
@@ -215,18 +228,51 @@ public class PlayerController : MonoBehaviour
 
         if (IsDashing && !hasDashed)
         {
-            // float dashDirection = transform.localScale.x;
-            // _rigidBody2D.velocity = new Vector2(dashDirection * dashStrength, 0);
-            // _rigidBody2D.AddForce(new Vector2(dashDirection * dashStrength, 0), ForceMode2D.Impulse);
             hasDashed = true;
             runChromaticAberration = true;
             chromaTimer = 1.0f;
-            // gameObject.layer = LayerMask.NameToLayer("Player");
         }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        if (collision.gameObject.CompareTag("Platform"))
+        {
+            currentPlatform = collision.gameObject.GetComponent<MovingPlatform>();
+            if (currentPlatform != null)
+            {
+                platformVelocity = currentPlatform.PlatformVelocity;
+            }
+        }
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Platform") && currentPlatform != null)
+        {
+            platformVelocity = currentPlatform.PlatformVelocity;
+        }
+    }
+
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Platform"))
+        {
+            if (collision.gameObject.GetComponent<MovingPlatform>() == currentPlatform)
+            {
+                platformVelocity = Vector2.zero;
+                currentPlatform = null;
+            }
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("ManaZone"))
+        {
+            regenerating = true;
+        }
+
         if (collision.gameObject.CompareTag("Enemy") || collision.gameObject.CompareTag("Boss"))
         {
             SlimeController enemy = collision.gameObject.GetComponent<SlimeController>();
@@ -246,14 +292,6 @@ public class PlayerController : MonoBehaviour
                     isBossKilled = true;
                 }
             }
-        }
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.gameObject.CompareTag("ManaZone"))
-        {
-            regenerating = true;
         }
     }
     private void OnTriggerExit2D(Collider2D collision)
