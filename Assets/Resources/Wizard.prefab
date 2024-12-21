@@ -103,7 +103,7 @@ GameObject:
   - component: {fileID: 2397168956158407904}
   m_Layer: 8
   m_Name: Wizard
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -117,8 +117,8 @@ Transform:
   m_GameObject: {fileID: 7621421543517784817}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.0350001, y: -3.5575001, z: -0.07499981}
-  m_LocalScale: {x: 0.9375, y: 0.9375, z: 0.9375}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 4925857502649145246}
@@ -138,7 +138,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   walkSpeed: 2
   airGlideSpeed: 2
-  jumpForce: 3
+  jumpForce: 5
   runSpeed: 3
   health: 1
   dashStrength: 3
@@ -148,6 +148,9 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
+  playersLayer:
+    serializedVersion: 2
+    m_Bits: 256
   boxSize: {x: 0.2, y: 0.1}
   castDistance: 0.345
 --- !u!114 &8441386763213347375

@@ -35,7 +35,7 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         Debug.Log("Joined room");
-        PhotonNetwork.LoadLevel("RoomLobby");
+        PhotonNetwork.LoadLevel("GameScene MP");
     }
 
     public override void OnJoinRoomFailed(short returnCode, string message)

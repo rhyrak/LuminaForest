@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using Photon.Pun;
+using Unity.VisualScripting;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
@@ -17,6 +18,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float dashStamina = 0f;
     [SerializeField] private float maxDashStamina = 16f;
     [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private LayerMask playersLayer;
     [SerializeField] private Vector2 boxSize;
     [SerializeField] private float castDistance;
 
@@ -339,13 +341,11 @@ public class PlayerController : MonoBehaviour
     public bool CheckIsGrounded()
     {
         if (Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, castDistance, groundLayer))
-        {
             return true;
-        }
-        else
-        {
-            return false;
-        }
+        var playerHits = Physics2D.BoxCastAll(transform.position, boxSize, 0, -transform.up, castDistance, playersLayer);
+        if (playerHits.Length > 1)
+            return true;
+        return false;
     }
 
     private void OnDrawGizmos()
