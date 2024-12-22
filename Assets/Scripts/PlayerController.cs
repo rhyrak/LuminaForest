@@ -42,10 +42,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private bool _isJumping = false;
     private bool _isDashing = false;
     private bool isBossKilled = false;
+    private int _ping;
 
     public float MaxEnergy => maxDashStamina;
     public float CurrentEnergy => dashStamina;
     public bool IsBossKilled => isBossKilled;
+    public int Score => score;
+    public int Ping => _ping;
+    public string Nickname => playerNameText.text;
 
     private Vector2 platformVelocity = Vector2.zero; // Velocity inherited from platform
     private MovingPlatform currentPlatform;
@@ -199,7 +203,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     void FixedUpdate()
     {
-
+        _ping = PhotonNetwork.GetPing();
         FlipSprite();
 
         // Update Horizontal Velocity
@@ -481,6 +485,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             stream.SendNext(health);
             stream.SendNext(score); // Send score to other players
             stream.SendNext(deathCount); // Send death count to other players
+            stream.SendNext(_ping);
         }
         if (stream.IsReading)
         {
@@ -489,6 +494,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             this.health = (int)stream.ReceiveNext();
             this.score = (int)stream.ReceiveNext(); // Receive score
             this.deathCount = (int)stream.ReceiveNext(); // Receive death count
+            this._ping = (int)stream.ReceiveNext();
         }
     }
 }
