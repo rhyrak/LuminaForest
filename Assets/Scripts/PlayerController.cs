@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
+using TMPro;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 {
+    [SerializeField] private TMP_Text playerNameText;
     [SerializeField] private float walkSpeed = 2f;
     [SerializeField] private float airGlideSpeed = 2f;
     [SerializeField] private float jumpForce = 5f;
@@ -124,6 +126,20 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         _photonView = GetComponent<PhotonView>();
     }
 
+    [PunRPC]
+    public void SetPlayerName(string name)
+    {
+        playerNameText.text = name;
+    }
+
+    void Start()
+    {
+        if (photonView.IsMine)
+        {
+            photonView.RPC("SetPlayerName", RpcTarget.AllBuffered, PhotonNetwork.NickName);
+        }
+    }
+
     void Update()
     {
         if (health <= 0 || transform.position.y < -28)
@@ -135,8 +151,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 PhotonNetwork.Destroy(_photonView);
             }
         }
-
-        FlipSprite();
 
         if (IsDashing)
             dashTimer += Time.deltaTime;
@@ -158,6 +172,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     void FixedUpdate()
     {
+
+        FlipSprite();
+
         // Update Horizontal Velocity
         if (IsDashing)
         {
@@ -348,17 +365,43 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
+    [PunRPC]
+    private void SyncFlipText(bool isFlipped)
+    {
+        Vector3 textScale = playerNameText.transform.localScale;
+        if (isFlipped)
+        {
+            playerNameText.transform.localScale = new Vector3(-Mathf.Abs(textScale.x), textScale.y, textScale.z);
+        }
+        else
+        {
+            playerNameText.transform.localScale = new Vector3(Mathf.Abs(textScale.x), textScale.y, textScale.z);
+        }
+    }
+
 
     // Handles sprite flipping based on movement direction
     private void FlipSprite()
     {
+        bool isFlipped = false;
+        // Flip the player sprite based on movement direction
         if (moveInput.x < 0) // Moving left
         {
             transform.localScale = new Vector3(-Mathf.Abs(originalScale.x), originalScale.y, originalScale.z);
+
+            isFlipped = true;
         }
         else if (moveInput.x > 0) // Moving right
         {
             transform.localScale = new Vector3(Mathf.Abs(originalScale.x), originalScale.y, originalScale.z);
+
+            isFlipped = false;
+        }
+
+        // Synchronize the name text flipping across the network
+        if (_photonView.IsMine && moveInput.x != 0)
+        {
+            photonView.RPC("SyncFlipText", RpcTarget.AllBuffered, isFlipped);
         }
     }
 

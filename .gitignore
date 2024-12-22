@@ -10,6 +10,7 @@
 /[Ll]ogs/
 /[Pp]ackages/
 /[Uu]ser[Ss]ettings/
+/LinuxBuild/
 
 !/[Pp]ackages/manifest.json
 !/[Pp]ackages/package-lock.json
