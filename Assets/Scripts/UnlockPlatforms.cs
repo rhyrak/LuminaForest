@@ -1,18 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
 using UnityEngine;
 
-public class UnlockPlatforms : MonoBehaviour
+public class UnlockPlatforms : MonoBehaviourPunCallbacks
 {
     public static UnlockPlatforms instance;
-
-    [Header("Dungeon Count")]
-    [SerializeField] public static int dungeonCount = 0;
 
     [Header("Moving Platforms")]
     [SerializeField] private GameObject[] movingPlatforms;  // Reference to the moving platforms
 
-    private bool[] dungeonIndex;
+    private bool topDungeonDefeated = false;
+    private bool bottomDungeonDefeated = false;
 
     private void Awake()
     {
@@ -30,40 +29,61 @@ public class UnlockPlatforms : MonoBehaviour
         {
             platform.SetActive(false);
         }
-        Debug.Log("Dungeon Count Unlock Platforms: " + dungeonCount);
-        dungeonIndex = new bool[dungeonCount];
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        // Update logic if needed
+        topDungeonDefeated = (bool)PhotonNetwork.CurrentRoom.
+            CustomProperties[ConnectionManager.TOP_DUNGEON_DEFEATED];
+        bottomDungeonDefeated = (bool)PhotonNetwork.CurrentRoom.
+            CustomProperties[ConnectionManager.BOTTOM_DUNGEON_DEFEATED];
+        TryUnlockPlatforms();
     }
 
     // Unlock the platforms once all dungeons are completed
-    private void UnlockPlatform()
+    private void TryUnlockPlatforms()
     {
+        if (!topDungeonDefeated || !bottomDungeonDefeated)
+            return;
         foreach (var platform in movingPlatforms)
         {
             platform.SetActive(true);  // Activates each platform
         }
+        SpawnBoss();
     }
 
-    // Mark a dungeon as completed
-    public void MarkDungeon(int index)
+    private void SpawnBoss()
     {
-        dungeonIndex[index] = true;
-
-        // Check if all dungeons are completed
-        for (int i = 0; i < dungeonCount; i++)
+        var boss = PhotonNetwork.InstantiateRoomObject("bossSlime", new Vector3(57, -2.9f, 0), Quaternion.identity);
+        if (boss != null)
         {
-            if (!dungeonIndex[i])
+            boss.GetComponent<SlimeController>().OnDeath += delegate (SlimeController obj)
             {
-                return;  // If any dungeon isn't completed, stop the process
-            }
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    ExitGames.Client.Photon.Hashtable props = new()
+                    {
+                        { ConnectionManager.BOSS_DEFEATED, true }
+                    };
+                    PhotonNetwork.CurrentRoom.SetCustomProperties(props);
+                }
+            };
         }
-
-        // All dungeons are completed, unlock the platforms
-        UnlockPlatform();
     }
+
+    public override void OnRoomPropertiesUpdate(ExitGames.Client.Photon.Hashtable props)
+    {
+        var top = props[ConnectionManager.TOP_DUNGEON_DEFEATED];
+        var bottom = props[ConnectionManager.BOTTOM_DUNGEON_DEFEATED];
+        if (top != null)
+        {
+            topDungeonDefeated = (bool)top;
+        }
+        if (bottom != null)
+        {
+            bottomDungeonDefeated = (bool)bottom;
+        }
+        // prevent other room prop updates to trigger this logic
+        if (top != null || bottom != null)
+        {
+            TryUnlockPlatforms();
+        }
+    }
+
 }

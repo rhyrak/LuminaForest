@@ -1,52 +1,37 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class UIManagerMP : MonoBehaviour
 {
-    [SerializeField] private GameObject player;
-    [SerializeField] private TextMeshProUGUI subtitle;
-    [SerializeField] private TextMeshProUGUI gameOverText;
-    [SerializeField] private RectTransform energyLevel;
-    [SerializeField] private GameObject energyBar;
+    [SerializeField] private TextMeshProUGUI objectives;
 
-    private PlayerController playerController;
-
-    void Start()
+    void FixedUpdate()
     {
-        playerController = player.GetComponent<PlayerController>();
-        energyBar.SetActive(true);
-    }
+        var top = PhotonNetwork.CurrentRoom.CustomProperties[ConnectionManager.TOP_DUNGEON_DEFEATED];
+        var bot = PhotonNetwork.CurrentRoom.CustomProperties[ConnectionManager.BOTTOM_DUNGEON_DEFEATED];
+        var boss = PhotonNetwork.CurrentRoom.CustomProperties[ConnectionManager.BOSS_DEFEATED];
 
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            Scene currentScene = SceneManager.GetActiveScene();
-            SceneManager.LoadScene(currentScene.name);
-        }
-        if (playerController == null)
-        {
-            GameOver("You Died!");
-            return;
-        }
+        objectives.text = "Defeat North Dungeon: ";
+        if (top != null && (bool)top)
+            objectives.text += "Completed\n";
+        else
+            objectives.text += "...\n";
 
-        var level = 280f * (playerController.CurrentEnergy / playerController.MaxEnergy);
-        energyLevel.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, level);
+        objectives.text += "Defeat South Dungeon: ";
+        if (bot != null && (bool)bot)
+            objectives.text += "Completed\n";
+        else
+            objectives.text += "...\n";
 
-        if (playerController.IsBossKilled)
-            GameOver("You Won!");
-    }
-
-
-    public void GameOver(string gameOverMessage)
-    {
-
-        gameOverText.text = gameOverMessage;
-        subtitle.text = "Press R to play again.";
-        energyBar.SetActive(false);
+        objectives.text += "Defeat Boss: ";
+        if (boss != null && (bool)boss)
+            objectives.text += "Completed";
+        else
+            objectives.text += "...";
     }
 }

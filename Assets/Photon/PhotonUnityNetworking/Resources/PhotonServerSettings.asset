@@ -36,6 +36,10 @@ MonoBehaviour:
   RpcList:
   - ClickRpc
   - DestroyRpc
+  - ActivateDungeon
+  - DelayedSlimeDespawn
+  - TakeDamage
+  - Die
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

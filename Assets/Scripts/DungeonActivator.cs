@@ -1,3 +1,4 @@
+using Photon.Pun;
 using UnityEngine;
 
 public class DungeonActivator : MonoBehaviour
@@ -6,7 +7,7 @@ public class DungeonActivator : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Check if the player entered the trigger
+        if (!PhotonNetwork.IsMasterClient) return;
         if (collision.CompareTag("Player"))
         {
             if (waveSpawner != null)

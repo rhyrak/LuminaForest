@@ -1,12 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 using Photon.Pun;
-using Unity.VisualScripting;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 {
     [SerializeField] private float walkSpeed = 2f;
     [SerializeField] private float airGlideSpeed = 2f;
@@ -21,6 +18,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private LayerMask playersLayer;
     [SerializeField] private Vector2 boxSize;
     [SerializeField] private float castDistance;
+    [SerializeField] private Transform energyIndicator;
 
     private PhotonView _photonView;
     private Rigidbody2D _rigidBody2D;
@@ -130,9 +128,12 @@ public class PlayerController : MonoBehaviour
     {
         if (health <= 0 || transform.position.y < -28)
         {
-            _animator.enabled = false;
-            ScreenFXManager.instance.EnablePlayerDiedEffects();
-            Destroy(gameObject);
+            if (_photonView != null && _photonView.IsMine)
+            {
+                _animator.enabled = false;
+                ScreenFXManager.instance.EnablePlayerDiedEffects();
+                PhotonNetwork.Destroy(_photonView);
+            }
         }
 
         FlipSprite();
@@ -188,10 +189,21 @@ public class PlayerController : MonoBehaviour
             _rigidBody2D.AddForce(new Vector2(0, jumpForce), ForceMode2D.Impulse);
             IsJumping = false;
         }
+        if (energyIndicator != null)
+        {
+            energyIndicator.localScale = new Vector3((CurrentEnergy / MaxEnergy) * 0.5f, 0.05f, 0f);
+            energyIndicator.position = new Vector3(
+                transform.localPosition.x - 0.25f + (CurrentEnergy / MaxEnergy) * 0.25f,
+                transform.localPosition.y + 0.5f, 0f);
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        if (_photonView != null && !_photonView.IsMine)
+        {
+            return;
+        }
         if (_photonView != null && !_photonView.IsMine)
         {
             return;
@@ -208,6 +220,10 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionStay2D(Collision2D collision)
     {
+        if (_photonView != null && !_photonView.IsMine)
+        {
+            return;
+        }
         if (collision.gameObject.CompareTag("Platform") && currentPlatform != null)
         {
             platformVelocity = currentPlatform.PlatformVelocity;
@@ -216,6 +232,10 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionExit2D(Collision2D collision)
     {
+        if (_photonView != null && !_photonView.IsMine)
+        {
+            return;
+        }
         if (collision.gameObject.CompareTag("Platform"))
         {
             if (collision.gameObject.GetComponent<MovingPlatform>() == currentPlatform)
@@ -228,6 +248,10 @@ public class PlayerController : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        if (_photonView != null && !_photonView.IsMine)
+        {
+            return;
+        }
         if (collision.gameObject.CompareTag("ManaZone"))
         {
             regenerating = true;
@@ -245,7 +269,7 @@ public class PlayerController : MonoBehaviour
                 }
                 else
                 {
-                    enemy.TakeDamage();
+                    PhotonView.Get(enemy).RPC("TakeDamage", RpcTarget.All);
                 }
                 if (enemy.isDead && collision.gameObject.CompareTag("Boss"))
                 {
@@ -356,5 +380,19 @@ public class PlayerController : MonoBehaviour
         }
 
         Gizmos.DrawWireCube(transform.position - transform.up * castDistance, boxSize);
+    }
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+        if (stream.IsWriting)
+        {
+            // We own this player: send the others our data
+            stream.SendNext(dashStamina);
+        }
+        if (stream.IsReading)
+        {
+            // Network player, receive data
+            this.dashStamina = (float)stream.ReceiveNext();
+        }
     }
 }

@@ -1,54 +1,26 @@
 using System.Collections;
-using System.Collections.Generic;
+using Photon.Pun;
 using UnityEngine;
 
 public class WaveSpawner : MonoBehaviour
 {
-    private bool isSpawning = false;
-    public float spawnYLevel = 0f;
+    [SerializeField]
+    private float spawnYLevel = 0f;
+    [SerializeField]
+    private GameObject enemyPrefab;
+    [SerializeField]
+    private bool isTopDungeon;
+
+    private bool isActivated = false;
     private int currentWave = 0;
     private int enemyCount = 0;
+    private int killedSlimeCount = 0;
     private int waveCount = 3;
     private int enemyIncrease = 3;
 
-    public List<SlimeController> enemies = new List<SlimeController>();
-    private List<SlimeController> activeEnemies = new List<SlimeController>();
-
-    // Global variable to track dungeon completions
-    public static int dungeonCount = 0;
-    private int dungeonIndex = 0;
-
-    private void Awake()
-    {
-        dungeonIndex = dungeonCount++;
-    }
-
-    void Start()
-    {
-        UnlockPlatforms.dungeonCount = dungeonCount;
-        Debug.Log("Dungeon Count Wave Spawner: " + dungeonCount);
-    }
-
-    void Update()
-    {
-        if (isSpawning)
-        {
-            if (activeEnemies.Count == 0) // Check if all enemies are defeated
-            {
-                StartCoroutine(NextWaveCooldown());
-            }
-        }
-    }
-
-    private IEnumerator DelayedSlimeDespawn(SlimeController enemy)
-    {
-        yield return new WaitForSeconds(2f);
-        Destroy(enemy.gameObject);
-    }
 
     private IEnumerator NextWaveCooldown()
     {
-        isSpawning = false; // Pause spawning during cooldown
         yield return new WaitForSeconds(5f); // Cooldown between waves
 
         if (currentWave < waveCount)
@@ -67,14 +39,23 @@ public class WaveSpawner : MonoBehaviour
         currentWave++;
         enemyCount += enemyIncrease;
         SpawnWave();
-        isSpawning = true; // Resume spawning
+    }
+
+    private void HandleDeath(SlimeController controller)
+    {
+        killedSlimeCount++;
+        if (killedSlimeCount == currentWave * enemyIncrease)
+        {
+            killedSlimeCount = 0;
+            StartCoroutine(NextWaveCooldown());
+        }
     }
 
     public void SpawnWave()
     {
-        if (enemies == null || enemies.Count == 0)
+        if (enemyPrefab == null)
         {
-            Debug.LogError("No enemies available to spawn. Please add enemy prefabs to the 'enemies' list in the Inspector.");
+            Debug.LogError("No enemies available to spawn. Please add enemy prefab to the in the Inspector.");
             return;
         }
 
@@ -86,36 +67,23 @@ public class WaveSpawner : MonoBehaviour
             Vector2 spawnPosition = new Vector2(randomX, spawnYLevel);
 
             // Spawn the enemy at the randomized position
-            SlimeController enemy = Instantiate(enemies[0], spawnPosition, Quaternion.identity);
-            enemy.gameObject.SetActive(true);
-
-            // Add to activeEnemies list
-            activeEnemies.Add(enemy);
-
-            // Subscribe to OnDeath event
-            enemy.OnDeath += HandleEnemyDeath;
-        }
-    }
-
-
-    private void HandleEnemyDeath(SlimeController enemy)
-    {
-        // Remove the enemy from the activeEnemies list when it dies
-        if (activeEnemies.Contains(enemy))
-        {
-            activeEnemies.Remove(enemy);
-            StartCoroutine(DelayedSlimeDespawn(enemy));
+            var enemy = PhotonNetwork.InstantiateRoomObject(enemyPrefab.name, spawnPosition, Quaternion.identity);
+            if (enemy != null) // enemy is null if caller is not master client
+            {
+                enemy.GetComponent<SlimeController>().OnDeath += HandleDeath;
+            }
         }
     }
 
     public void ActivateDungeon()
     {
-        if (isSpawning)
+        if (!PhotonNetwork.IsMasterClient) return;
+        if (isActivated)
         {
             Debug.LogWarning("Dungeon is already active. Cannot activate again.");
             return;
         }
-        isSpawning = true;
+        isActivated = true;
         currentWave = 0; // Reset wave count if reactivating the dungeon
         enemyCount = 0; // Reset enemy count
         StartNextWave(); // Start the first wave
@@ -123,7 +91,14 @@ public class WaveSpawner : MonoBehaviour
 
     private void DungeonDefeated()
     {
-        isSpawning = false;
-        UnlockPlatforms.instance.MarkDungeon(dungeonIndex);
+        if (PhotonNetwork.IsMasterClient)
+        {
+            var key = isTopDungeon ? ConnectionManager.TOP_DUNGEON_DEFEATED : ConnectionManager.BOTTOM_DUNGEON_DEFEATED;
+            ExitGames.Client.Photon.Hashtable props = new()
+            {
+                { key, true }
+            };
+            PhotonNetwork.CurrentRoom.SetCustomProperties(props);
+        }
     }
 }

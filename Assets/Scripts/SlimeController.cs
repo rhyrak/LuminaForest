@@ -1,10 +1,10 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine.Rendering.Universal;
 using UnityEngine;
+using Photon.Pun;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class SlimeController : MonoBehaviour
+public class SlimeController : MonoBehaviourPunCallbacks, IPunObservable
 {
     [SerializeField] private float walkSpeed = 4f;
     private Rigidbody2D _rigidBody2D;
@@ -58,15 +58,17 @@ public class SlimeController : MonoBehaviour
         }
     }
 
+    [PunRPC]
     public void TakeDamage()
     {
         health--;
         if (health <= 0)
         {
-            Die();
+            PhotonView.Get(this).RPC("Die", RpcTarget.All);
         }
     }
 
+    [PunRPC]
     public void Die()
     {
         if (isDead) return;
@@ -76,8 +78,36 @@ public class SlimeController : MonoBehaviour
         _animator.enabled = false;
         _light2D.intensity = 0.0f;
         _rigidBody2D.velocity = Vector2.zero;
+        OnDeath?.Invoke(null);
+        if (PhotonNetwork.IsMasterClient)
+        {
+            StartCoroutine(DelayedSlimeDespawn());
+        }
+    }
 
-        // Trigger the OnDeath event
-        OnDeath?.Invoke(this);
+    private IEnumerator DelayedSlimeDespawn()
+    {
+        yield return new WaitForSeconds(2f);
+        PhotonNetwork.Destroy(this.gameObject);
+    }
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+        if (stream.IsWriting)
+        {
+            // We own this player: send the others our data
+            stream.SendNext(isDead);
+            stream.SendNext(health);
+        }
+        if (stream.IsReading)
+        {
+            // Network player, receive data
+            this.isDead = (bool)stream.ReceiveNext();
+            this.health = (int)stream.ReceiveNext();
+            if (health <= 0)
+            {
+                Die();
+            }
+        }
     }
 }

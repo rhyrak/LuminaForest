@@ -1,11 +1,16 @@
 using UnityEngine;
 using Photon.Pun;
 using TMPro;
+using System.Collections;
 
 public class ConnectionManager : MonoBehaviourPunCallbacks
 {
     [SerializeField]
     private TMP_InputField RoomNameInputField;
+
+    public static readonly string TOP_DUNGEON_DEFEATED = "t";
+    public static readonly string BOTTOM_DUNGEON_DEFEATED = "b";
+    public static readonly string BOSS_DEFEATED = "g";
 
     public void Start()
     {
@@ -24,7 +29,16 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
 
     public void CreateRoom()
     {
-        PhotonNetwork.CreateRoom(RoomNameInputField.text);
+        Photon.Realtime.RoomOptions roomOptions = new();
+        roomOptions.MaxPlayers = 4;
+        ExitGames.Client.Photon.Hashtable props = new()
+            {
+                { TOP_DUNGEON_DEFEATED, false },
+                { BOTTOM_DUNGEON_DEFEATED, false },
+                { BOSS_DEFEATED, false },
+            };
+        roomOptions.CustomRoomProperties = props;
+        PhotonNetwork.CreateRoom(RoomNameInputField.text, roomOptions);
     }
 
     public void JoinRoom()
