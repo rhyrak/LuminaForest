@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
 using Photon.Realtime;
@@ -7,16 +6,14 @@ using UnityEngine;
 
 public class MenuUIManager : MonoBehaviour
 {
-    [SerializeField]
-    private TMP_InputField UserNameInputField;
-    [SerializeField]
-    private TMP_InputField RoomNameInputField;
-    [SerializeField]
-    private RectTransform RoomList;
-    [SerializeField]
-    private GameObject RoomTilePrefab;
-    [SerializeField]
-    private GameObject MultiplayerWindow;
+    [SerializeField] private TMP_InputField UserNameInputField;
+    [SerializeField] private TMP_InputField RoomNameInputField;
+    [SerializeField] private TMP_Text ConnectionInfo;
+    [SerializeField] private RectTransform RoomList;
+    [SerializeField] private GameObject RoomTilePrefab;
+    [SerializeField] private GameObject MultiplayerWindow;
+
+    private int updateConnectionInfoTimer = 0;
 
     public static MenuUIManager instance;
 
@@ -34,6 +31,24 @@ public class MenuUIManager : MonoBehaviour
         {
             RoomNameInputField.text = PlayerPrefs.GetString("RoomName");
         }
+    }
+
+    public void FixedUpdate()
+    {
+        if (updateConnectionInfoTimer > 0)
+        {
+            updateConnectionInfoTimer--;
+            return;
+        }
+        if (PhotonNetwork.InLobby)
+        {
+            ConnectionInfo.text = "Connected! Ping: " + PhotonNetwork.GetPing();
+        }
+        else
+        {
+            ConnectionInfo.text = "Connecting...";
+        }
+        updateConnectionInfoTimer++;
     }
 
     public void SaveUsernameAndRoomName()
