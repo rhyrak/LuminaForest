@@ -814,6 +814,7 @@ MonoBehaviour:
   PlayerPrefab: {fileID: 7621421543517784817, guid: 9df91d8ef997efc4f9d3ff693b2e0d2e, type: 3}
   SpawnPoint: {x: -16, y: -1.5, z: 0}
   Camera: {fileID: 1074734547}
+  respawnDelay: 2
 --- !u!4 &383808115
 Transform:
   m_ObjectHideFlags: 0
@@ -20487,7 +20488,7 @@ Tilemap:
       - {fileID: 21300000, guid: 7a0f0aa343d654b438e66621d46de4b1, type: 3}
       - {fileID: 21300000, guid: d29f82d8998b7134cab69552be4d344c, type: 3}
       - {fileID: 21300000, guid: 5fde5e6403f79c246a352efa168aee6f, type: 3}
-      m_AnimationSpeed: 20.000002
+      m_AnimationSpeed: 20
       m_AnimationTimeOffset: 0
       m_Flags: 0
   - first: {x: -17, y: -3, z: 0}

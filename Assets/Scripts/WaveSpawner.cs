@@ -89,6 +89,23 @@ public class WaveSpawner : MonoBehaviour
         StartNextWave(); // Start the first wave
     }
 
+    public void ResetDungeon()
+    {
+        isActivated = false;
+        currentWave = 0;
+        enemyCount = 0;
+        killedSlimeCount = 0;
+        if (PhotonNetwork.IsMasterClient)
+        {
+            var key = isTopDungeon ? ConnectionManager.TOP_DUNGEON_DEFEATED : ConnectionManager.BOTTOM_DUNGEON_DEFEATED;
+            ExitGames.Client.Photon.Hashtable props = new()
+            {
+                { key, false }
+            };
+            PhotonNetwork.CurrentRoom.SetCustomProperties(props);
+        }
+    }
+
     private void DungeonDefeated()
     {
         if (PhotonNetwork.IsMasterClient)

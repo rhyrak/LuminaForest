@@ -332,12 +332,12 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0.8251369, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  _SortingLayer: 0
-  _SortingLayerID: 0
-  _SortingOrder: 0
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 4440646890741103371}
   m_maskType: 0
+  _SortingLayer: 0
+  _SortingLayerID: 0
+  _SortingOrder: 0
 --- !u!1 &7331311693258702785
 GameObject:
   m_ObjectHideFlags: 0
@@ -539,10 +539,6 @@ MonoBehaviour:
     m_ActionId: 887a9556-62b4-419d-ab5f-6f9530981031
     m_ActionName: Player/Move[/Keyboard/w,/Keyboard/upArrow,/Keyboard/s,/Keyboard/downArrow,/Keyboard/a,/Keyboard/leftArrow,/Keyboard/d,/Keyboard/rightArrow]
   - m_PersistentCalls:
-      m_Calls: []
-    m_ActionId: 3b4fb04a-41f5-4e50-b05e-d77ad155b897
-    m_ActionName: Player/Look[/Mouse/delta]
-  - m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 4633823982027180070}
         m_TargetAssemblyTypeName: PlayerController, Assembly-CSharp
@@ -630,6 +626,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: 94c0ff4a-cb35-4634-8c46-159e7287d5d4
     m_ActionName: Player/Jump[/Keyboard/space]
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 4633823982027180070}
+        m_TargetAssemblyTypeName: PlayerController, Assembly-CSharp
+        m_MethodName: OnRespawn
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: d3ec78d1-0c85-481a-ad1e-36538f0e0fdc
+    m_ActionName: Player/Respawn[/Keyboard/r]
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player

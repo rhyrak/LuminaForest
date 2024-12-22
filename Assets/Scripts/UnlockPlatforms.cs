@@ -67,6 +67,30 @@ public class UnlockPlatforms : MonoBehaviourPunCallbacks
         }
     }
 
+    public IEnumerator ResetBoss()
+    {
+        List<WaveSpawner> dungeons = new List<WaveSpawner>(FindObjectsOfType<WaveSpawner>());
+        foreach (var dungeon in dungeons)
+        {
+            dungeon.ResetDungeon();
+        }
+        foreach (var platform in movingPlatforms)
+        {
+            platform.SetActive(false);  // De-Activate each platform
+        }
+
+        yield return new WaitForSeconds(5f);
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            ExitGames.Client.Photon.Hashtable props = new()
+            {
+                { ConnectionManager.BOSS_DEFEATED, false }
+            };
+            PhotonNetwork.CurrentRoom.SetCustomProperties(props);
+        }
+    }
+
     public override void OnRoomPropertiesUpdate(ExitGames.Client.Photon.Hashtable props)
     {
         var top = props[ConnectionManager.TOP_DUNGEON_DEFEATED];

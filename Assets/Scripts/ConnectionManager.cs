@@ -1,7 +1,5 @@
 using UnityEngine;
 using Photon.Pun;
-using TMPro;
-using System.Collections;
 using System.Collections.Generic;
 using Photon.Realtime;
 
@@ -55,12 +53,12 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
         PhotonNetwork.JoinRoom(roomName);
     }
 
-
     public override void OnJoinedRoom()
     {
-        Debug.Log("Joined room");
+        Debug.Log($"Joined room: {PhotonNetwork.CurrentRoom.Name}");
         PhotonNetwork.LoadLevel("GameScene MP");
     }
+
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {

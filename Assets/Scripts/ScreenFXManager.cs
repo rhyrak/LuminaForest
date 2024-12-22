@@ -53,4 +53,14 @@ public class ScreenFXManager : MonoBehaviour
         GlobalVolume.profile.TryGet(out depthOfField);
         depthOfField.active = true;
     }
+
+    public void DisablePlayerDiedEffects()
+    {
+        ColorAdjustments colorAdjustments;
+        GlobalVolume.profile.TryGet(out colorAdjustments);
+        colorAdjustments.active = false;
+        DepthOfField depthOfField;
+        GlobalVolume.profile.TryGet(out depthOfField);
+        depthOfField.active = false;
+    }
 }
