@@ -18,7 +18,7 @@ public class RoomTile : MonoBehaviour
         PlayersInfo.text = roomInfo.PlayerCount + "/" + roomInfo.MaxPlayers;
         JoinButton.onClick.AddListener(() =>
         {
-            ConnectionManager.instance.JoinRoom(roomInfo.Name);
+            MenuUIManager.instance.JoinRoom(roomInfo.Name);
         });
         if (roomInfo.PlayerCount == roomInfo.MaxPlayers)
         {
