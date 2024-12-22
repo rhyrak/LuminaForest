@@ -74,6 +74,10 @@ public class SlimeController : MonoBehaviourPunCallbacks, IPunObservable
         if (isDead) return;
 
         isDead = true;
+        if (gameObject.tag == "Boss")
+        {
+            StartCoroutine(UnlockPlatforms.instance.ResetBoss());
+        }
         gameObject.layer = LayerMask.NameToLayer("DeadEnemy");
         _animator.enabled = false;
         _light2D.intensity = 0.0f;
@@ -83,6 +87,7 @@ public class SlimeController : MonoBehaviourPunCallbacks, IPunObservable
         {
             StartCoroutine(DelayedSlimeDespawn());
         }
+
     }
 
     private IEnumerator DelayedSlimeDespawn()

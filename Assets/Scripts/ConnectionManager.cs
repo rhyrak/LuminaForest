@@ -75,6 +75,12 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
 
     public void CreateRoom()
     {
+        if (PhotonNetwork.NetworkClientState != Photon.Realtime.ClientState.JoinedLobby)
+        {
+            Debug.LogError("Cannot create room. Client is not in the lobby or ready for matchmaking. Wait for OnJoinedLobby.");
+            return;
+        }
+
         SaveUsernameAndRoomName(RoomNameInputField.text);  // Save before creating the room
 
         Photon.Realtime.RoomOptions roomOptions = new();
@@ -91,16 +97,16 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
 
     public void JoinRoom(string roomName)
     {
-        SaveUsernameAndRoomName(roomName);  // Save before joining the room
+        SaveUsernameAndRoomName(roomName);  // Save the username and room name locally
         PhotonNetwork.JoinRoom(roomName);
     }
 
-
     public override void OnJoinedRoom()
     {
-        Debug.Log("Joined room");
+        Debug.Log($"Joined room: {PhotonNetwork.CurrentRoom.Name}");
         PhotonNetwork.LoadLevel("GameScene MP");
     }
+
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
@@ -147,6 +153,7 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
     {
         cachedRoomList.Clear();
     }
+
     public void SetPlayerName(string playerName)
     {
         if (!string.IsNullOrEmpty(playerName))

@@ -1,6 +1,9 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
+using ExitGames.Client.Photon;
 using TMPro;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -21,6 +24,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private Vector2 boxSize;
     [SerializeField] private float castDistance;
     [SerializeField] private Transform energyIndicator;
+
+    private int score = 0;  // Player's score
+    private int deathCount = 0;  // Player's death counter
 
     private PhotonView _photonView;
     private Rigidbody2D _rigidBody2D;
@@ -136,6 +142,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         if (photonView.IsMine)
         {
+            // Load player properties and set them
+            if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("score"))
+            {
+                score = (int)PhotonNetwork.LocalPlayer.CustomProperties["score"];
+            }
+            if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("deathCount"))
+            {
+                deathCount = (int)PhotonNetwork.LocalPlayer.CustomProperties["deathCount"];
+            }
+
+            // Sync player name
             photonView.RPC("SetPlayerName", RpcTarget.AllBuffered, PhotonNetwork.NickName);
         }
     }
@@ -149,6 +166,16 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 _animator.enabled = false;
                 ScreenFXManager.instance.EnablePlayerDiedEffects();
                 PhotonNetwork.Destroy(_photonView);
+
+                deathCount++;
+                SetPlayerScoreAndDeaths();  // Save death count and score
+
+                // Trigger automatic respawn
+                SpawnPlayers spawnManager = FindObjectOfType<SpawnPlayers>();
+                if (spawnManager != null)
+                {
+                    spawnManager.RespawnPlayer(); // Respawn player at their unique spawn point
+                }
             }
         }
 
@@ -288,9 +315,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 {
                     PhotonView.Get(enemy).RPC("TakeDamage", RpcTarget.All);
                 }
-                if (enemy.isDead && collision.gameObject.CompareTag("Boss"))
+                if (enemy.isDead)
                 {
-                    isBossKilled = true;
+                    // Add points based on the type of enemy killed
+                    if (collision.gameObject.CompareTag("Boss"))
+                    {
+                        score += 10; // Boss killed
+                    }
+                    else if (collision.gameObject.CompareTag("Enemy"))
+                    {
+                        score += 1; // Regular enemy killed
+                    }
+
                 }
             }
         }
@@ -365,6 +401,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
+    public void SetPlayerScoreAndDeaths()
+    {
+        ExitGames.Client.Photon.Hashtable playerProperties = new ExitGames.Client.Photon.Hashtable();
+        playerProperties["score"] = score;
+        playerProperties["deathCount"] = deathCount;
+
+        // Set custom properties for the player
+        PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
+    }
+
+
     [PunRPC]
     private void SyncFlipText(bool isFlipped)
     {
@@ -431,11 +478,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             // We own this player: send the others our data
             stream.SendNext(dashStamina);
+            stream.SendNext(health);
+            stream.SendNext(score); // Send score to other players
+            stream.SendNext(deathCount); // Send death count to other players
         }
         if (stream.IsReading)
         {
             // Network player, receive data
             this.dashStamina = (float)stream.ReceiveNext();
+            this.health = (int)stream.ReceiveNext();
+            this.score = (int)stream.ReceiveNext(); // Receive score
+            this.deathCount = (int)stream.ReceiveNext(); // Receive death count
         }
     }
 }
