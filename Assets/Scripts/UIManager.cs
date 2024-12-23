@@ -13,7 +13,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private RectTransform energyLevel;
     [SerializeField] private GameObject energyBar;
 
-    private PlayerController playerController;
+    private TutPlayerController playerController;
     private bool tutorialCompleted = false;
 
     private string[] tutorialTexts = new[] {
@@ -24,7 +24,7 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
-        playerController = player.GetComponent<PlayerController>();
+        playerController = player.GetComponent<TutPlayerController>();
         subtitle.text = tutorialTexts[0];
     }
 
@@ -86,5 +86,10 @@ public class UIManager : MonoBehaviour
         gameOverText.text = gameOverMessage;
         subtitle.text = "Press R to play again.";
         energyBar.SetActive(false);
+    }
+
+    public void GoBackToMenu()
+    {
+        SceneManager.LoadScene("Menu");
     }
 }
