@@ -242,7 +242,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             energyIndicator.localScale = new Vector3((CurrentEnergy / MaxEnergy) * 0.5f, 0.05f, 0f);
             energyIndicator.position = new Vector3(
                 transform.localPosition.x - 0.25f + (CurrentEnergy / MaxEnergy) * 0.25f,
-                transform.localPosition.y + 0.5f, 0f);
+                transform.localPosition.y + 0.5f, energyIndicator.position.z);
         }
     }
 
