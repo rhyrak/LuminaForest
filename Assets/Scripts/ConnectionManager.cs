@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using Photon.Realtime;
 using System.Collections;
 using UnityEngine.SceneManagement;
-using System.Security.Permissions;
 
 public class ConnectionManager : MonoBehaviourPunCallbacks
 {
@@ -49,7 +48,7 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
         RoomOptions roomOptions = new()
         {
             MaxPlayers = 4,
-            PlayerTtl = 60000,
+            PlayerTtl = 1000,
         };
         ExitGames.Client.Photon.Hashtable props = new()
         {
@@ -115,8 +114,7 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
         }
         if (cause != DisconnectCause.DisconnectByClientLogic)
         {
-            if (PhotonNetwork.InLobby && PlayerPrefs.HasKey("RoomName"))
-                PhotonNetwork.RejoinRoom(PlayerPrefs.GetString("RoomName"));
+            PhotonNetwork.ReconnectAndRejoin();
         }
         if (MenuUIManager.instance != null)
         {

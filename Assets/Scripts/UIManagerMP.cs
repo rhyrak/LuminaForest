@@ -32,7 +32,7 @@ public class UIManagerMP : MonoBehaviour
 
     private void UpdateObjectives()
     {
-        if (!PhotonNetwork.IsConnected)
+        if (!PhotonNetwork.IsConnected || !PhotonNetwork.InRoom)
         {
             objectives.text = "You are disconnected!";
             return;
