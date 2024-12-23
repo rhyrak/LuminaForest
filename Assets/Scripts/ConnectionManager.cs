@@ -2,6 +2,9 @@ using UnityEngine;
 using Photon.Pun;
 using System.Collections.Generic;
 using Photon.Realtime;
+using System.Collections;
+using UnityEngine.SceneManagement;
+using System.Security.Permissions;
 
 public class ConnectionManager : MonoBehaviourPunCallbacks
 {
@@ -13,9 +16,10 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
     public static readonly string BOTTOM_DUNGEON_DEFEATED = "b";
     public static readonly string BOSS_DEFEATED = "g";
 
-    void Start()
+    void Awake()
     {
         if (instance == null) instance = this;
+        DontDestroyOnLoad(this.gameObject);
 
         // Connect to Photon
         if (!PhotonNetwork.IsConnected)
@@ -24,7 +28,7 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
-        if (!PhotonNetwork.InLobby)
+        if (!PhotonNetwork.InLobby && PhotonNetwork.NetworkClientState != ClientState.JoiningLobby)
             PhotonNetwork.JoinLobby();
     }
 
@@ -36,9 +40,16 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
 
     public void CreateRoom(string roomName)
     {
+        if (!PhotonNetwork.InLobby)
+        {
+            if (MenuUIManager.instance != null)
+                MenuUIManager.instance.ShowErrorDialog("Create Room Failed", "You are not connected to the server!");
+            return;
+        }
         RoomOptions roomOptions = new()
         {
-            MaxPlayers = 4
+            MaxPlayers = 4,
+            PlayerTtl = 60000,
         };
         ExitGames.Client.Photon.Hashtable props = new()
         {
@@ -64,6 +75,8 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
+        if (MenuUIManager.instance != null)
+            MenuUIManager.instance.ShowErrorDialog("Failed to join", message);
         Debug.LogErrorFormat("Room creation failed with error code {0} and error message {1}", returnCode, message);
     }
 
@@ -81,7 +94,8 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
                 cachedRoomList[info.Name] = info;
             }
         }
-        MenuUIManager.instance.ListAllRooms(cachedRoomList);
+        if (MenuUIManager.instance != null)
+            MenuUIManager.instance.ListAllRooms(cachedRoomList);
     }
 
     public override void OnRoomListUpdate(List<RoomInfo> roomList)
@@ -95,6 +109,37 @@ public class ConnectionManager : MonoBehaviourPunCallbacks
 
     public override void OnDisconnected(DisconnectCause cause)
     {
+        if (SceneManager.GetActiveScene().name == "GameScene MP")
+        {
+            SceneManager.LoadScene("Menu");
+        }
+        if (cause != DisconnectCause.DisconnectByClientLogic)
+        {
+            if (PhotonNetwork.InLobby && PlayerPrefs.HasKey("RoomName"))
+                PhotonNetwork.RejoinRoom(PlayerPrefs.GetString("RoomName"));
+        }
+        if (MenuUIManager.instance != null)
+        {
+            var errMessage = cause.ToString();
+            if (cause == DisconnectCause.DnsExceptionOnConnect)
+                errMessage = "You are not connected to the server!";
+            MenuUIManager.instance.ShowErrorDialog("Disconnected", errMessage);
+        }
+
+        StartCoroutine(ReconnectWithCooldown(5));
+
         cachedRoomList.Clear();
+    }
+
+    public override void OnCreateRoomFailed(short returnCode, string message)
+    {
+        if (MenuUIManager.instance != null)
+            MenuUIManager.instance.ShowErrorDialog("Create Room Failed", "Cause: " + message + " (" + returnCode + ")");
+    }
+
+    public IEnumerator ReconnectWithCooldown(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        PhotonNetwork.ConnectUsingSettings();
     }
 }

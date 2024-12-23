@@ -324,7 +324,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                     // Add points based on the type of enemy killed
                     if (collision.gameObject.CompareTag("Boss"))
                     {
-                        score += 10; // Boss killed
+                        score += 50; // Boss killed
                     }
                     else if (collision.gameObject.CompareTag("Enemy"))
                     {

@@ -32,6 +32,11 @@ public class UIManagerMP : MonoBehaviour
 
     private void UpdateObjectives()
     {
+        if (!PhotonNetwork.IsConnected)
+        {
+            objectives.text = "You are disconnected!";
+            return;
+        }
         var top = PhotonNetwork.CurrentRoom.CustomProperties[ConnectionManager.TOP_DUNGEON_DEFEATED];
         var bot = PhotonNetwork.CurrentRoom.CustomProperties[ConnectionManager.BOTTOM_DUNGEON_DEFEATED];
         var boss = PhotonNetwork.CurrentRoom.CustomProperties[ConnectionManager.BOSS_DEFEATED];

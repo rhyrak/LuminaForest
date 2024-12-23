@@ -3,6 +3,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class MenuUIManager : MonoBehaviour
 {
@@ -12,6 +13,9 @@ public class MenuUIManager : MonoBehaviour
     [SerializeField] private RectTransform RoomList;
     [SerializeField] private GameObject RoomTilePrefab;
     [SerializeField] private GameObject MultiplayerWindow;
+    [SerializeField] private GameObject ErrorDialog;
+    [SerializeField] private TMP_Text ErrorTitle;
+    [SerializeField] private TMP_Text ErrorText;
 
     private int updateConnectionInfoTimer = 0;
 
@@ -112,9 +116,26 @@ public class MenuUIManager : MonoBehaviour
         RoomList.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, listHeight);
     }
 
+    public void ShowErrorDialog(string errTitle, string errMessage)
+    {
+        ErrorTitle.text = errTitle;
+        ErrorText.text = errMessage;
+        ErrorDialog.SetActive(true);
+    }
+
+    public void CloseErrorDialog()
+    {
+        ErrorDialog.SetActive(false);
+    }
+
     public void ToggleMultiplayerWindow()
     {
         MultiplayerWindow.SetActive(!MultiplayerWindow.activeInHierarchy);
+    }
+
+    public void TransitionToTutorial()
+    {
+        SceneManager.LoadScene("GameScene");
     }
 
     public void Quit()
