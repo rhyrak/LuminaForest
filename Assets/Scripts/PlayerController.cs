@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
-using ExitGames.Client.Photon;
 using TMPro;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -17,7 +14,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private int health = 2;
     [SerializeField] private float dashStrength = 3f;
     [SerializeField] private float dashDuration = 0.5f;
-    [SerializeField] private float dashStamina = 0f;
+    [SerializeField] private float dashStamina;
     [SerializeField] private float maxDashStamina = 16f;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private LayerMask playersLayer;
@@ -25,106 +22,86 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private float castDistance;
     [SerializeField] private Transform energyIndicator;
 
-    private int score = 0;  // Player's score
-    private int deathCount = 0;  // Player's death counter
-
     private PhotonView _photonView;
     private Rigidbody2D _rigidBody2D;
     private Animator _animator;
-    private Vector3 originalScale;
-    private Vector2 moveInput;
-    private Vector2 baseVelocity;
-    private float dashTimer = 0f;
-    private bool regenerating = false;
-    private bool _isMoving = false;
-    private bool _isRunning = false;
-    private bool _isGrounded = false;
-    private bool _isJumping = false;
-    private bool _isDashing = false;
-    private bool isBossKilled = false;
-    private int _ping;
+    private Vector3 _originalScale;
+    private Vector2 _moveInput;
+    private Vector2 _baseVelocity;
+    private float _dashTimer;
+    private bool _regenerating;
+    private bool _isMoving;
+    private bool _isRunning;
+    private bool _isGrounded;
+    private bool _isJumping;
+    private bool _isDashing;
 
-    public float MaxEnergy => maxDashStamina;
-    public float CurrentEnergy => dashStamina;
-    public bool IsBossKilled => isBossKilled;
-    public int Score => score;
-    public int Ping => _ping;
+    private Vector2 _platformVelocity = Vector2.zero; // Velocity inherited from platform
+    private MovingPlatform _currentPlatform;
+    
+    public int Score { get; private set; }
+    public int Ping { get; private set; }
+    public int DeathCount { get; private set; }
     public string Nickname => playerNameText.text;
-
-    private Vector2 platformVelocity = Vector2.zero; // Velocity inherited from platform
-    private MovingPlatform currentPlatform;
-
-    public bool IsMoving
+    
+    private bool IsMoving
     {
-        get
-        {
-            return _isMoving;
-        }
-        private set
+        get => _isMoving;
+        set
         {
             _isMoving = value;
             _animator.SetBool("isMoving", value);
         }
     }
-    public bool IsRunning
+
+    private bool IsRunning
     {
-        get
-        {
-            return _isRunning;
-        }
-        private set
+        get => _isRunning;
+        set
         {
             _isRunning = value;
             _animator.SetBool("isRunning", value);
         }
     }
-    public bool IsGrounded
+
+    private bool IsGrounded
     {
-        get
-        {
-            return _isGrounded;
-        }
-        private set
+        get => _isGrounded;
+        set
         {
             _isGrounded = value;
             _animator.SetBool("isGrounded", value);
         }
     }
-    public bool IsJumping
+
+    private bool IsJumping
     {
-        get
-        {
-            return _isJumping;
-        }
-        private set
+        get => _isJumping;
+        set
         {
             _isJumping = value;
             _animator.SetBool("isJumping", value);
         }
     }
-    public bool IsDashing
+
+    private bool IsDashing
     {
-        get
-        {
-            return _isDashing;
-        }
-        private set
+        get => _isDashing;
+        set
         {
             _isDashing = value;
             _animator.SetBool("isDashing", value);
         }
     }
-    public float CurrentMoveSpeed
+
+    private float CurrentMoveSpeed
     {
         get
         {
-            if (IsMoving)
-                if (!IsGrounded)
-                    return airGlideSpeed;
-                else
-                    return IsRunning ? runSpeed : walkSpeed;
-            else
-                return 0;
+            if (!IsMoving) return 0;
+            if (!IsGrounded)
+                return airGlideSpeed;
+            return IsRunning ? runSpeed : walkSpeed;
         }
     }
 
@@ -132,50 +109,48 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         _rigidBody2D = GetComponent<Rigidbody2D>();
         _animator = GetComponent<Animator>();
-        originalScale = transform.localScale;
+        _originalScale = transform.localScale;
         _photonView = GetComponent<PhotonView>();
     }
 
     [PunRPC]
-    public void SetPlayerName(string name)
+    public void SetPlayerName(string playerName)
     {
-        playerNameText.text = name;
+        playerNameText.text = playerName;
     }
 
-    void Start()
+    public void Start()
     {
-        if (photonView.IsMine)
+        if (!photonView.IsMine) return;
+        // Load player properties and set them
+        if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("score"))
         {
-            // Load player properties and set them
-            if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("score"))
-            {
-                score = (int)PhotonNetwork.LocalPlayer.CustomProperties["score"];
-            }
-            if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("deathCount"))
-            {
-                deathCount = (int)PhotonNetwork.LocalPlayer.CustomProperties["deathCount"];
-            }
-
-            // Sync player name
-            photonView.RPC("SetPlayerName", RpcTarget.AllBuffered, PhotonNetwork.NickName);
+            Score = (int)PhotonNetwork.LocalPlayer.CustomProperties["score"];
         }
+        if (PhotonNetwork.LocalPlayer.CustomProperties.ContainsKey("deathCount"))
+        {
+            DeathCount = (int)PhotonNetwork.LocalPlayer.CustomProperties["deathCount"];
+        }
+
+        // Sync player name
+        photonView.RPC("SetPlayerName", RpcTarget.AllBuffered, PhotonNetwork.NickName);
     }
 
-    void Update()
+    public void Update()
     {
         if (health <= 0 || transform.position.y < -28)
         {
             if (_photonView != null && _photonView.IsMine)
             {
                 _animator.enabled = false;
-                ScreenFXManager.instance.EnablePlayerDiedEffects();
+                ScreenFXManager.Instance.EnablePlayerDiedEffects();
                 PhotonNetwork.Destroy(_photonView);
 
-                deathCount++;
+                DeathCount++;
                 SetPlayerScoreAndDeaths();  // Save death count and score
 
                 // Trigger automatic respawn
-                SpawnPlayers spawnManager = FindObjectOfType<SpawnPlayers>();
+                var spawnManager = FindObjectOfType<SpawnPlayers>();
                 if (spawnManager != null)
                 {
                     spawnManager.RespawnPlayer(); // Respawn player at their unique spawn point
@@ -184,14 +159,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
 
         if (IsDashing)
-            dashTimer += Time.deltaTime;
-        if (dashTimer >= dashDuration)
+            _dashTimer += Time.deltaTime;
+        if (_dashTimer >= dashDuration)
         {
             IsDashing = false;
-            dashTimer = 0f;
+            _dashTimer = 0f;
         }
 
-        if (regenerating)
+        if (_regenerating)
         {
             dashStamina += Time.deltaTime * 2;
             if (dashStamina > maxDashStamina)
@@ -201,24 +176,26 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
-    void FixedUpdate()
+    public void FixedUpdate()
     {
-        _ping = PhotonNetwork.GetPing();
+        if (_photonView != null && _photonView.IsMine)
+            Ping = PhotonNetwork.GetPing();
+        
         FlipSprite();
 
         // Update Horizontal Velocity
         if (IsDashing)
         {
-            float dashDirection = transform.localScale.x;
-            baseVelocity = new Vector2(dashDirection * dashStrength, 0);
+            var dashDirection = transform.localScale.x;
+            _baseVelocity = new Vector2(dashDirection * dashStrength, 0);
         }
         else
         {
-            baseVelocity = new Vector2(moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
+            _baseVelocity = new Vector2(_moveInput.x * CurrentMoveSpeed, _rigidBody2D.velocity.y);
         }
 
         // update velocity
-        _rigidBody2D.velocity = baseVelocity + platformVelocity;
+        _rigidBody2D.velocity = _baseVelocity + _platformVelocity;
 
         if (CheckIsGrounded() && !IsJumping)
         {
@@ -227,8 +204,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         else
         {
             _isGrounded = false;
-            currentPlatform = null;
-            platformVelocity = Vector2.zero;
+            _currentPlatform = null;
+            _platformVelocity = Vector2.zero;
         }
 
         // Update Vertical Velocity
@@ -239,9 +216,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
         if (energyIndicator != null)
         {
-            energyIndicator.localScale = new Vector3((CurrentEnergy / MaxEnergy) * 0.5f, 0.05f, 0f);
+            energyIndicator.localScale = new Vector3((dashStamina / maxDashStamina) * 0.5f, 0.05f, 0f);
             energyIndicator.position = new Vector3(
-                transform.localPosition.x - 0.25f + (CurrentEnergy / MaxEnergy) * 0.25f,
+                transform.localPosition.x - 0.25f + (dashStamina / maxDashStamina) * 0.25f,
                 transform.localPosition.y + 0.5f, energyIndicator.position.z);
         }
     }
@@ -256,13 +233,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             return;
         }
-        if (collision.gameObject.CompareTag("Platform"))
+
+        if (!collision.gameObject.CompareTag("Platform")) return;
+        _currentPlatform = collision.gameObject.GetComponent<MovingPlatform>();
+        if (_currentPlatform != null)
         {
-            currentPlatform = collision.gameObject.GetComponent<MovingPlatform>();
-            if (currentPlatform != null)
-            {
-                platformVelocity = currentPlatform.PlatformVelocity;
-            }
+            _platformVelocity = _currentPlatform.PlatformVelocity;
         }
     }
 
@@ -272,9 +248,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             return;
         }
-        if (collision.gameObject.CompareTag("Platform") && currentPlatform != null)
+        if (collision.gameObject.CompareTag("Platform") && _currentPlatform != null)
         {
-            platformVelocity = currentPlatform.PlatformVelocity;
+            _platformVelocity = _currentPlatform.PlatformVelocity;
         }
     }
 
@@ -284,14 +260,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             return;
         }
-        if (collision.gameObject.CompareTag("Platform"))
-        {
-            if (collision.gameObject.GetComponent<MovingPlatform>() == currentPlatform)
-            {
-                platformVelocity = Vector2.zero;
-                currentPlatform = null;
-            }
-        }
+        if (!collision.gameObject.CompareTag("Platform")) return;
+        if (collision.gameObject.GetComponent<MovingPlatform>() != _currentPlatform) return;
+        _platformVelocity = Vector2.zero;
+        _currentPlatform = null;
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -302,37 +274,31 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
         if (collision.gameObject.CompareTag("ManaZone"))
         {
-            regenerating = true;
+            _regenerating = true;
         }
 
-        if (collision.gameObject.CompareTag("Enemy") || collision.gameObject.CompareTag("Boss"))
+        if (!collision.gameObject.CompareTag("Enemy") && !collision.gameObject.CompareTag("Boss")) return;
+        var enemy = collision.gameObject.GetComponent<SlimeController>();
+        if (enemy.isDead) return;
+        // Decrement health
+        if (!IsDashing) // Player is invincible whilst dashing
         {
-            SlimeController enemy = collision.gameObject.GetComponent<SlimeController>();
-            if (!enemy.isDead)
-            {
-                // Decrement health
-                if (!IsDashing) /** Player is invincible whilst dashing */
-                {
-                    health--;
-                }
-                else
-                {
-                    PhotonView.Get(enemy).RPC("TakeDamage", RpcTarget.All);
-                }
-                if (enemy.isDead)
-                {
-                    // Add points based on the type of enemy killed
-                    if (collision.gameObject.CompareTag("Boss"))
-                    {
-                        score += 50; // Boss killed
-                    }
-                    else if (collision.gameObject.CompareTag("Enemy"))
-                    {
-                        score += 1; // Regular enemy killed
-                    }
+            health--;
+        }
+        else
+        {
+            PhotonView.Get(enemy).RPC("TakeDamage", RpcTarget.All);
+        }
 
-                }
-            }
+        if (!enemy.isDead) return;
+        // Add points based on the type of enemy killed
+        if (collision.gameObject.CompareTag("Boss"))
+        {
+            Score += 50; // Boss killed
+        }
+        else if (collision.gameObject.CompareTag("Enemy"))
+        {
+            Score += 1; // Regular enemy killed
         }
     }
 
@@ -344,7 +310,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
         if (collision.gameObject.CompareTag("ManaZone"))
         {
-            regenerating = false;
+            _regenerating = false;
         }
     }
 
@@ -355,9 +321,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             return;
         }
-        moveInput = context.ReadValue<Vector2>();
+        _moveInput = context.ReadValue<Vector2>();
 
-        IsMoving = moveInput.x != 0;
+        IsMoving = _moveInput.x != 0;
     }
 
     public void OnRun(InputAction.CallbackContext context)
@@ -382,11 +348,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             return;
         }
-        if (context.started && CheckIsGrounded())
-        {
-            IsJumping = true; // Set the jump flag
-            IsGrounded = false; // Set the grounded flag to false
-        }
+
+        if (!context.started || !CheckIsGrounded()) return;
+        IsJumping = true; // Set the jump flag
+        IsGrounded = false; // Set the grounded flag to false
     }
 
     public void OnFire(InputAction.CallbackContext context)
@@ -395,21 +360,22 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             return;
         }
-        if (context.started && dashStamina >= 2f && !IsDashing)
-        {
-            IsDashing = true;
-            ScreenFXManager.instance.RunChromaticAberration(1.0f);
-            dashStamina -= 2f;
-            _rigidBody2D.velocity = new Vector2(moveInput.x * dashStrength, 0);
-            _rigidBody2D.AddForce(new Vector2(dashStrength, 0), ForceMode2D.Force);
-        }
+
+        if (!context.started || !(dashStamina >= 2f) || IsDashing) return;
+        IsDashing = true;
+        ScreenFXManager.Instance.RunChromaticAberration(1.0f);
+        dashStamina -= 2f;
+        _rigidBody2D.velocity = new Vector2(_moveInput.x * dashStrength, 0);
+        _rigidBody2D.AddForce(new Vector2(dashStrength, 0), ForceMode2D.Force);
     }
 
-    public void SetPlayerScoreAndDeaths()
+    private void SetPlayerScoreAndDeaths()
     {
-        ExitGames.Client.Photon.Hashtable playerProperties = new ExitGames.Client.Photon.Hashtable();
-        playerProperties["score"] = score;
-        playerProperties["deathCount"] = deathCount;
+        var playerProperties = new ExitGames.Client.Photon.Hashtable
+        {
+            ["score"] = Score,
+            ["deathCount"] = DeathCount
+        };
 
         // Set custom properties for the player
         PhotonNetwork.LocalPlayer.SetCustomProperties(playerProperties);
@@ -419,51 +385,42 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [PunRPC]
     private void SyncFlipText(bool isFlipped)
     {
-        Vector3 textScale = playerNameText.transform.localScale;
-        if (isFlipped)
-        {
-            playerNameText.transform.localScale = new Vector3(-Mathf.Abs(textScale.x), textScale.y, textScale.z);
-        }
-        else
-        {
-            playerNameText.transform.localScale = new Vector3(Mathf.Abs(textScale.x), textScale.y, textScale.z);
-        }
+        var textScale = playerNameText.transform.localScale;
+        playerNameText.transform.localScale = isFlipped ? new Vector3(-Mathf.Abs(textScale.x), textScale.y, textScale.z)
+            : new Vector3(Mathf.Abs(textScale.x), textScale.y, textScale.z);
     }
 
 
     // Handles sprite flipping based on movement direction
     private void FlipSprite()
     {
-        bool isFlipped = false;
-        // Flip the player sprite based on movement direction
-        if (moveInput.x < 0) // Moving left
+        var isFlipped = false;
+        switch (_moveInput.x)
         {
-            transform.localScale = new Vector3(-Mathf.Abs(originalScale.x), originalScale.y, originalScale.z);
-
-            isFlipped = true;
-        }
-        else if (moveInput.x > 0) // Moving right
-        {
-            transform.localScale = new Vector3(Mathf.Abs(originalScale.x), originalScale.y, originalScale.z);
-
-            isFlipped = false;
+            // Flip the player sprite based on movement direction
+            // Moving left
+            case < 0:
+                transform.localScale = new Vector3(-Mathf.Abs(_originalScale.x), _originalScale.y, _originalScale.z);
+                isFlipped = true;
+                break;
+            // Moving right
+            case > 0:
+                transform.localScale = new Vector3(Mathf.Abs(_originalScale.x), _originalScale.y, _originalScale.z);
+                break;
         }
 
         // Synchronize the name text flipping across the network
-        if (_photonView.IsMine && moveInput.x != 0)
-        {
+        if (_photonView.IsMine && _moveInput.x != 0)
             photonView.RPC("SyncFlipText", RpcTarget.AllBuffered, isFlipped);
-        }
+        
     }
 
-    public bool CheckIsGrounded()
+    private bool CheckIsGrounded()
     {
         if (Physics2D.BoxCast(transform.position, boxSize, 0, -transform.up, castDistance, groundLayer))
             return true;
         var playerHits = Physics2D.BoxCastAll(transform.position, boxSize, 0, -transform.up, castDistance, playersLayer);
-        if (playerHits.Length > 1)
-            return true;
-        return false;
+        return playerHits.Length > 1;
     }
 
     private void OnDrawGizmos()
@@ -483,18 +440,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             // We own this player: send the others our data
             stream.SendNext(dashStamina);
             stream.SendNext(health);
-            stream.SendNext(score); // Send score to other players
-            stream.SendNext(deathCount); // Send death count to other players
-            stream.SendNext(_ping);
+            stream.SendNext(Score); // Send score to other players
+            stream.SendNext(DeathCount); // Send death count to other players
+            stream.SendNext(Ping);
         }
         if (stream.IsReading)
         {
             // Network player, receive data
-            this.dashStamina = (float)stream.ReceiveNext();
-            this.health = (int)stream.ReceiveNext();
-            this.score = (int)stream.ReceiveNext(); // Receive score
-            this.deathCount = (int)stream.ReceiveNext(); // Receive death count
-            this._ping = (int)stream.ReceiveNext();
+            dashStamina = (float)stream.ReceiveNext();
+            health = (int)stream.ReceiveNext();
+            Score = (int)stream.ReceiveNext(); // Receive score
+            DeathCount = (int)stream.ReceiveNext(); // Receive death count
+            Ping = (int)stream.ReceiveNext();
         }
     }
 }

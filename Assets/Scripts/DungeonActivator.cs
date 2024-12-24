@@ -8,13 +8,9 @@ public class DungeonActivator : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (!PhotonNetwork.IsMasterClient) return;
-        if (collision.CompareTag("Player"))
-        {
-            if (waveSpawner != null)
-            {
-                waveSpawner.ActivateDungeon();
-                Debug.Log("Dungeon Activated!");
-            }
-        }
+        if (!collision.CompareTag("Player")) return;
+        if (waveSpawner == null) return;
+        waveSpawner.ActivateDungeon();
+        Debug.Log("Dungeon Activated!");
     }
 }

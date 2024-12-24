@@ -4,142 +4,211 @@ using Photon.Realtime;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
-public class MenuUIManager : MonoBehaviour
+namespace UI
 {
-    [SerializeField] private TMP_InputField UserNameInputField;
-    [SerializeField] private TMP_InputField RoomNameInputField;
-    [SerializeField] private TMP_Text ConnectionInfo;
-    [SerializeField] private RectTransform RoomList;
-    [SerializeField] private GameObject RoomTilePrefab;
-    [SerializeField] private GameObject MultiplayerWindow;
-    [SerializeField] private GameObject ErrorDialog;
-    [SerializeField] private TMP_Text ErrorTitle;
-    [SerializeField] private TMP_Text ErrorText;
-
-    private int updateConnectionInfoTimer = 0;
-
-    public static MenuUIManager instance;
-
-    public void Start()
+    public class MenuUIManager : MonoBehaviour
     {
-        if (instance == null) instance = this;
+        // Window elements for in lobby state
+        [SerializeField] private TMP_InputField userNameInputField;
+        [SerializeField] private TMP_InputField roomNameInputField;
+        [SerializeField] private TMP_Text connectionInfo;
+        [SerializeField] private RectTransform roomList;
+        [SerializeField] private GameObject roomTilePrefab;
+        [SerializeField] private GameObject multiplayerWindow;
+        // Window elements for in room state
+        [SerializeField] private GameObject roomLobbyWindow;
+        [SerializeField] private TMP_Text roomName;
+        [SerializeField] private TMP_Text roomInfo;
+        [SerializeField] private Button leaveButton;
+        [SerializeField] private Button startButton;
+        [SerializeField] private RectTransform playerList;
+        [SerializeField] private GameObject playerTilePrefab;
+        // Error dialog elements
+        [SerializeField] private GameObject errorDialog;
+        [SerializeField] private TMP_Text errorTitle;
+        [SerializeField] private TMP_Text errorText;
 
-        // Check if username and room name are saved in PlayerPrefs
-        if (PlayerPrefs.HasKey("Username"))
+        private int _updateConnectionInfoTimer;
+        private bool _showWindow;
+        
+        public static MenuUIManager Instance;
+
+        public void Start()
         {
-            UserNameInputField.text = PlayerPrefs.GetString("Username");
+            if (Instance == null) Instance = this;
+
+            // Check if username and room name are saved in PlayerPrefs
+            if (PlayerPrefs.HasKey("Username"))
+            {
+                userNameInputField.text = PlayerPrefs.GetString("Username");
+            }
+
+            if (PlayerPrefs.HasKey("RoomName"))
+            {
+                roomNameInputField.text = PlayerPrefs.GetString("RoomName");
+            }
+            
+            startButton.onClick.AddListener(() =>
+            {
+                if(PhotonNetwork.IsMasterClient)
+                    PhotonNetwork.LoadLevel("GameScene MP");
+                PhotonNetwork.CurrentRoom.IsOpen = false;
+            });
+            
+            leaveButton.onClick.AddListener(() =>
+            {
+                PhotonNetwork.LeaveRoom(false);
+            });
         }
 
-        if (PlayerPrefs.HasKey("RoomName"))
+        public void FixedUpdate()
         {
-            RoomNameInputField.text = PlayerPrefs.GetString("RoomName");
+            if (_showWindow)
+            {
+                if (PhotonNetwork.InRoom)
+                {
+                    UpdateInRoomWindow();
+                }
+                else
+                {
+                    UpdateInLobbyWindow();
+                }
+            }
         }
-    }
 
-    public void FixedUpdate()
-    {
-        if (updateConnectionInfoTimer > 0)
+        private void UpdateInLobbyWindow()
         {
-            updateConnectionInfoTimer--;
-            return;
+            roomLobbyWindow.SetActive(false);
+            multiplayerWindow.SetActive(true);
+            UpdateConnectionInfo();
         }
-        if (PhotonNetwork.InLobby)
+
+        private void UpdateInRoomWindow()
         {
-            ConnectionInfo.text = "Connected! Ping: " + PhotonNetwork.GetPing();
+            multiplayerWindow.SetActive(false);
+            roomLobbyWindow.SetActive(true);
+            var isMaster = PhotonNetwork.IsMasterClient;
+            startButton.enabled = isMaster;
+            roomName.text = PhotonNetwork.CurrentRoom.Name;
+            roomInfo.text = isMaster ? "You are the room owner. Start the game whenever you want."
+                : "Waiting for the room owner to start the game.";
+            
+            foreach (Transform child in playerList)
+            {
+                GameObject.Destroy(child.gameObject);
+            }
+            var listHeight = 60;
+            var players = PhotonNetwork.PlayerList;
+            foreach (var player in players)
+            {
+                listHeight += 110;
+                var playerType = player.IsMasterClient ? "Master" : "Client";
+                var tile = Instantiate(playerTilePrefab, playerList, true);
+                tile.GetComponent<PlayerTile>().SetValues(player.NickName, playerType);
+                tile.transform.localScale = new Vector3(1, 1, 1);
+            }
+            playerList.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, listHeight);
         }
-        else
+
+        private void UpdateConnectionInfo()
         {
-            ConnectionInfo.text = "Connecting...";
+            if (_updateConnectionInfoTimer > 0)
+            {
+                _updateConnectionInfoTimer--;
+                return;
+            }
+            if (PhotonNetwork.InLobby)
+            {
+                connectionInfo.text = "Connected! Ping: " + PhotonNetwork.GetPing();
+            }
+            else
+            {
+                connectionInfo.text = "Connecting...";
+            }
+            _updateConnectionInfoTimer++;
         }
-        updateConnectionInfoTimer++;
-    }
 
-    public void SaveUsernameAndRoomName()
-    {
-        // Save the username and room name locally using PlayerPrefs
-        string username = UserNameInputField.text;
-        string roomName = RoomNameInputField.text;
-
-        // Check for empty username, if empty, set a random name
-        if (!string.IsNullOrEmpty(username))
-            PhotonNetwork.NickName = username;
-        else
-            PhotonNetwork.NickName = "Player" + Random.Range(1000, 9999);
-
-        // Check for empty room name, if empty, set a default name
-        if (string.IsNullOrEmpty(roomName))
-            roomName = "Room_" + Random.Range(1000, 9999).ToString();
-
-        // Save the non-empty values
-        PlayerPrefs.SetString("Username", PhotonNetwork.NickName); // Save the actual Photon username
-        PlayerPrefs.SetString("RoomName", roomName);
-        PlayerPrefs.Save();
-    }
-
-    public void CreateRoom()
-    {
-        var roomName = RoomNameInputField.text;
-        SaveUsernameAndRoomName();
-        ConnectionManager.instance.CreateRoom(roomName);
-    }
-
-    public void JoinRoom(string roomName)
-    {
-        SaveUsernameAndRoomName();  // Save before joining the room
-        ConnectionManager.instance.JoinRoom(roomName);
-    }
-
-    public void ListAllRooms(Dictionary<string, RoomInfo> rooms)
-    {
-        foreach (Transform child in RoomList)
+        private void SaveUsernameAndRoomName()
         {
-            GameObject.Destroy(child.gameObject);
+            // Save the username and room name locally using PlayerPrefs
+            var username = userNameInputField.text;
+            var roomName = roomNameInputField.text;
+
+            // Check for empty username, if empty, set a random name
+            if (!string.IsNullOrEmpty(username))
+                PhotonNetwork.NickName = username;
+            else
+                PhotonNetwork.NickName = "Player" + Random.Range(1000, 9999);
+
+            // Check for empty room name, if empty, set a default name
+            if (string.IsNullOrEmpty(roomName))
+                roomName = "Room_" + Random.Range(1000, 9999).ToString();
+
+            // Save the non-empty values
+            PlayerPrefs.SetString("Username", PhotonNetwork.NickName); // Save the actual Photon username
+            PlayerPrefs.SetString("RoomName", roomName);
+            PlayerPrefs.Save();
         }
-        int listHeight = 60;
-        // TODO: Delete me
-        // for (int i = 0; i < 2; i++)
-        // {
-        //     listHeight += 110;
-        //     var dummyTile = Instantiate(RoomTilePrefab);
-        //     dummyTile.transform.parent = RoomList;
-        //     dummyTile.transform.localScale = new Vector3(1, 1, 1);
-        // }
-        foreach (var room in rooms)
+
+        public void CreateRoom()
         {
-            listHeight += 110;
-            var tile = Instantiate(RoomTilePrefab);
-            tile.GetComponent<RoomTile>().SetValues(room.Value);
-            tile.transform.parent = RoomList;
-            tile.transform.localScale = new Vector3(1, 1, 1);
+            var roomName = roomNameInputField.text;
+            SaveUsernameAndRoomName();
+            ConnectionManager.Instance.CreateRoom(roomName);
         }
-        RoomList.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, listHeight);
-    }
 
-    public void ShowErrorDialog(string errTitle, string errMessage)
-    {
-        ErrorTitle.text = errTitle;
-        ErrorText.text = errMessage;
-        ErrorDialog.SetActive(true);
-    }
+        public void JoinRoom(string roomName)
+        {
+            SaveUsernameAndRoomName();  // Save before joining the room
+            ConnectionManager.Instance.JoinRoom(roomName);
+        }
 
-    public void CloseErrorDialog()
-    {
-        ErrorDialog.SetActive(false);
-    }
+        public void ListAllRooms(Dictionary<string, RoomInfo> rooms)
+        {
+            foreach (Transform child in roomList)
+            {
+                GameObject.Destroy(child.gameObject);
+            }
+            var listHeight = 60;
+            foreach (var room in rooms)
+            {
+                listHeight += 110;
+                var tile = Instantiate(roomTilePrefab, roomList, true);
+                tile.GetComponent<RoomTile>().SetValues(room.Value);
+                tile.transform.localScale = new Vector3(1, 1, 1);
+            }
+            roomList.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, listHeight);
+        }
 
-    public void ToggleMultiplayerWindow()
-    {
-        MultiplayerWindow.SetActive(!MultiplayerWindow.activeInHierarchy);
-    }
+        public void ShowErrorDialog(string errTitle, string errMessage)
+        {
+            errorTitle.text = errTitle;
+            errorText.text = errMessage;
+            errorDialog.SetActive(true);
+        }
 
-    public void TransitionToTutorial()
-    {
-        SceneManager.LoadScene("GameScene");
-    }
+        public void CloseErrorDialog()
+        {
+            errorDialog.SetActive(false);
+        }
 
-    public void Quit()
-    {
-        Application.Quit();
+        public void ToggleMultiplayerWindow()
+        {
+            _showWindow = !_showWindow;
+            multiplayerWindow.SetActive(!multiplayerWindow.activeInHierarchy);
+        }
+
+        public void TransitionToTutorial()
+        {
+            SceneManager.LoadScene("GameScene");
+        }
+
+        public void Quit()
+        {
+            Application.Quit();
+        }
     }
 }

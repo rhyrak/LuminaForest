@@ -4,63 +4,55 @@ using UnityEngine.Rendering.Universal;
 
 public class ScreenFXManager : MonoBehaviour
 {
-    [SerializeField] private Volume GlobalVolume;
-    public static ScreenFXManager instance;
-    private ChromaticAberration chromaticAberration;
-    private bool runChromaticAberration = false;
-    private float chromaDuration;
-    private float chromaTimer;
+    [SerializeField] private Volume globalVolume;
+    public static ScreenFXManager Instance;
+    private ChromaticAberration _chromaticAberration;
+    private bool _runChromaticAberration = false;
+    private float _chromaDuration;
+    private float _chromaTimer;
 
     public void Awake()
     {
-        if (instance == null)
+        if (Instance == null)
         {
-            instance = this;
+            Instance = this;
         }
-        GlobalVolume.profile.TryGet(out chromaticAberration);
+        globalVolume.profile.TryGet(out _chromaticAberration);
     }
 
     // Update is called once per frame
     public void Update()
     {
-        if (runChromaticAberration)
-        {
-            chromaTimer -= Time.deltaTime;
-            chromaticAberration.intensity.Override(Mathf.Lerp(
-                chromaticAberration.intensity.value, 0f, Mathf.Abs(chromaDuration - chromaTimer)));
-            if (chromaTimer <= 0.0f)
-            {
-                runChromaticAberration = false;
-                chromaticAberration.intensity.Override(0.0f);
-            }
-        }
+        if (!_runChromaticAberration) return;
+        _chromaTimer -= Time.deltaTime;
+        _chromaticAberration.intensity.Override(Mathf.Lerp(
+            _chromaticAberration.intensity.value, 0f, Mathf.Abs(_chromaDuration - _chromaTimer)));
+        if (!(_chromaTimer <= 0.0f)) return;
+        _runChromaticAberration = false;
+        _chromaticAberration.intensity.Override(0.0f);
     }
 
     public void RunChromaticAberration(float duration)
     {
-        chromaDuration = duration > 0.0f ? duration : 0.0f;
-        chromaticAberration.intensity.Override(1.0f);
-        runChromaticAberration = true;
-        chromaTimer = duration;
+        _chromaDuration = duration > 0.0f ? duration : 0.0f;
+        _chromaticAberration.intensity.Override(1.0f);
+        _runChromaticAberration = true;
+        _chromaTimer = duration;
     }
 
     public void EnablePlayerDiedEffects()
     {
-        ColorAdjustments colorAdjustments;
-        GlobalVolume.profile.TryGet(out colorAdjustments);
+        globalVolume.profile.TryGet(out ColorAdjustments colorAdjustments);
         colorAdjustments.active = true;
-        DepthOfField depthOfField;
-        GlobalVolume.profile.TryGet(out depthOfField);
+        globalVolume.profile.TryGet(out DepthOfField depthOfField);
         depthOfField.active = true;
     }
 
     public void DisablePlayerDiedEffects()
     {
-        ColorAdjustments colorAdjustments;
-        GlobalVolume.profile.TryGet(out colorAdjustments);
+        globalVolume.profile.TryGet(out ColorAdjustments colorAdjustments);
         colorAdjustments.active = false;
-        DepthOfField depthOfField;
-        GlobalVolume.profile.TryGet(out depthOfField);
+        globalVolume.profile.TryGet(out DepthOfField depthOfField);
         depthOfField.active = false;
     }
 }

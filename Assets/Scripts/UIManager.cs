@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -13,76 +10,72 @@ public class UIManager : MonoBehaviour
     [SerializeField] private RectTransform energyLevel;
     [SerializeField] private GameObject energyBar;
 
-    private TutPlayerController playerController;
-    private bool tutorialCompleted = false;
+    private TutPlayerController _playerController;
+    private bool _tutorialCompleted = false;
 
-    private string[] tutorialTexts = new[] {
+    private readonly string[] _tutorialTexts = new[] {
         "Use A and D to move left and right. Hold Shift to sprint. Press Space to jump.",
         "As you explore, you'll come across glowing blue plants. Stand close to these plants to regenerate your energy. Energy is vital for using abilities, so keep an eye out for these helpful plants!",
         "Click the Left Mouse Button to perform a quick dash in the direction you're facing. This move is perfect for killing slimes or quickly covering distance."
         };
 
-    void Start()
+    public void Start()
     {
-        playerController = player.GetComponent<TutPlayerController>();
-        subtitle.text = tutorialTexts[0];
+        _playerController = player.GetComponent<TutPlayerController>();
+        subtitle.text = _tutorialTexts[0];
     }
 
-    void Update()
+    public void Update()
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
-            Scene currentScene = SceneManager.GetActiveScene();
+            var currentScene = SceneManager.GetActiveScene();
             SceneManager.LoadScene(currentScene.name);
         }
-        if (playerController == null)
+        if (_playerController == null)
         {
             GameOver("You Lost!");
             return;
         }
 
         Tutorial();
-        var level = 280f * (playerController.CurrentEnergy / playerController.MaxEnergy);
+        var level = 280f * (_playerController.CurrentEnergy / _playerController.MaxEnergy);
         energyLevel.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, level);
 
-        if (playerController.IsBossKilled)
+        if (_playerController.IsBossKilled)
             GameOver("You Won!");
     }
 
     private void Tutorial()
     {
-        if (tutorialCompleted)
+        if (_tutorialCompleted)
             return;
 
-        if (player.transform.position.x <= -4f)
+        switch (player.transform.position.x)
         {
-            subtitle.text = tutorialTexts[0];
-        }
-        else
-        if (player.transform.position.x >= 0 && player.transform.position.x <= 5.5f)
-        {
-            subtitle.text = tutorialTexts[1];
-            energyBar.SetActive(true);
-        }
-        else
-        if (player.transform.position.x >= 5.5f && player.transform.position.x <= 12f)
-        {
-            subtitle.text = tutorialTexts[2];
-        }
-        else
-        {
-            subtitle.text = "";
+            case <= -4f:
+                subtitle.text = _tutorialTexts[0];
+                break;
+            case >= 0 and <= 5.5f:
+                subtitle.text = _tutorialTexts[1];
+                energyBar.SetActive(true);
+                break;
+            case >= 5.5f and <= 12f:
+                subtitle.text = _tutorialTexts[2];
+                break;
+            default:
+                subtitle.text = "";
+                break;
         }
         if (player.transform.position.y <= -4f)
         {
             subtitle.text = "";
-            tutorialCompleted = true;
+            _tutorialCompleted = true;
         }
     }
 
-    public void GameOver(string gameOverMessage)
+    private void GameOver(string gameOverMessage)
     {
-
         gameOverText.text = gameOverMessage;
         subtitle.text = "Press R to play again.";
         energyBar.SetActive(false);

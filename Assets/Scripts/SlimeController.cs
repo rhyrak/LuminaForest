@@ -76,7 +76,7 @@ public class SlimeController : MonoBehaviourPunCallbacks, IPunObservable
         isDead = true;
         if (gameObject.tag == "Boss")
         {
-            StartCoroutine(UnlockPlatforms.instance.ResetBoss());
+            StartCoroutine(UnlockPlatforms.Instance.ResetBoss());
         }
         gameObject.layer = LayerMask.NameToLayer("DeadEnemy");
         _animator.enabled = false;

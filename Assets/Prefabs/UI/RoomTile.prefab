@@ -441,9 +441,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfafd1d3889aafa4891e4a93fbca6450, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  RoomName: {fileID: 332360949064969870}
-  PlayersInfo: {fileID: 2195786705256748461}
-  JoinButton: {fileID: 1019672833443244201}
+  roomName: {fileID: 332360949064969870}
+  playersInfo: {fileID: 2195786705256748461}
+  joinButton: {fileID: 1019672833443244201}
 --- !u!114 &968305637449663810
 MonoBehaviour:
   m_ObjectHideFlags: 0

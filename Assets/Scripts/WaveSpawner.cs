@@ -11,19 +11,19 @@ public class WaveSpawner : MonoBehaviour
     [SerializeField]
     private bool isTopDungeon;
 
-    private bool isActivated = false;
-    private int currentWave = 0;
-    private int enemyCount = 0;
-    private int killedSlimeCount = 0;
-    private int waveCount = 3;
-    private int enemyIncrease = 3;
+    private bool _isActivated = false;
+    private int _currentWave = 0;
+    private int _enemyCount = 0;
+    private int _killedSlimeCount = 0;
+    private const int WaveCount = 3;
+    private const int EnemyIncrease = 3;
 
 
     private IEnumerator NextWaveCooldown()
     {
         yield return new WaitForSeconds(5f); // Cooldown between waves
 
-        if (currentWave < waveCount)
+        if (_currentWave < WaveCount)
         {
             StartNextWave();
         }
@@ -36,22 +36,22 @@ public class WaveSpawner : MonoBehaviour
 
     private void StartNextWave()
     {
-        currentWave++;
-        enemyCount += enemyIncrease;
+        _currentWave++;
+        _enemyCount += EnemyIncrease;
         SpawnWave();
     }
 
     private void HandleDeath(SlimeController controller)
     {
-        killedSlimeCount++;
-        if (killedSlimeCount == currentWave * enemyIncrease)
+        _killedSlimeCount++;
+        if (_killedSlimeCount == _currentWave * EnemyIncrease)
         {
-            killedSlimeCount = 0;
+            _killedSlimeCount = 0;
             StartCoroutine(NextWaveCooldown());
         }
     }
 
-    public void SpawnWave()
+    private void SpawnWave()
     {
         if (enemyPrefab == null)
         {
@@ -59,12 +59,12 @@ public class WaveSpawner : MonoBehaviour
             return;
         }
 
-        for (int i = 0; i < enemyCount; i++)
+        for (var i = 0; i < _enemyCount; i++)
         {
             // Randomize the x position to minimize enemies spawning on top of each other
-            float randomX = transform.position.x + Random.Range(-3f, 3f);
+            var randomX = transform.position.x + Random.Range(-3f, 3f);
 
-            Vector2 spawnPosition = new Vector2(randomX, spawnYLevel);
+            var spawnPosition = new Vector2(randomX, spawnYLevel);
 
             // Spawn the enemy at the randomized position
             var enemy = PhotonNetwork.InstantiateRoomObject(enemyPrefab.name, spawnPosition, Quaternion.identity);
@@ -78,44 +78,41 @@ public class WaveSpawner : MonoBehaviour
     public void ActivateDungeon()
     {
         if (!PhotonNetwork.IsMasterClient) return;
-        if (isActivated)
+        if (_isActivated)
         {
             Debug.LogWarning("Dungeon is already active. Cannot activate again.");
             return;
         }
-        isActivated = true;
-        currentWave = 0; // Reset wave count if reactivating the dungeon
-        enemyCount = 0; // Reset enemy count
+        _isActivated = true;
+        _currentWave = 0; // Reset wave count if reactivating the dungeon
+        _enemyCount = 0; // Reset enemy count
         StartNextWave(); // Start the first wave
     }
 
     public void ResetDungeon()
     {
-        isActivated = false;
-        currentWave = 0;
-        enemyCount = 0;
-        killedSlimeCount = 0;
-        if (PhotonNetwork.IsMasterClient)
+        _isActivated = false;
+        _currentWave = 0;
+        _enemyCount = 0;
+        _killedSlimeCount = 0;
+        
+        if (!PhotonNetwork.IsMasterClient) return;
+        var key = isTopDungeon ? ConnectionManager.TOP_DUNGEON_DEFEATED : ConnectionManager.BOTTOM_DUNGEON_DEFEATED;
+        ExitGames.Client.Photon.Hashtable props = new()
         {
-            var key = isTopDungeon ? ConnectionManager.TOP_DUNGEON_DEFEATED : ConnectionManager.BOTTOM_DUNGEON_DEFEATED;
-            ExitGames.Client.Photon.Hashtable props = new()
-            {
-                { key, false }
-            };
-            PhotonNetwork.CurrentRoom.SetCustomProperties(props);
-        }
+            { key, false }
+        };
+        PhotonNetwork.CurrentRoom.SetCustomProperties(props);
     }
 
     private void DungeonDefeated()
     {
-        if (PhotonNetwork.IsMasterClient)
+        if (!PhotonNetwork.IsMasterClient) return;
+        var key = isTopDungeon ? ConnectionManager.TOP_DUNGEON_DEFEATED : ConnectionManager.BOTTOM_DUNGEON_DEFEATED;
+        ExitGames.Client.Photon.Hashtable props = new()
         {
-            var key = isTopDungeon ? ConnectionManager.TOP_DUNGEON_DEFEATED : ConnectionManager.BOTTOM_DUNGEON_DEFEATED;
-            ExitGames.Client.Photon.Hashtable props = new()
-            {
-                { key, true }
-            };
-            PhotonNetwork.CurrentRoom.SetCustomProperties(props);
-        }
+            { key, true }
+        };
+        PhotonNetwork.CurrentRoom.SetCustomProperties(props);
     }
 }

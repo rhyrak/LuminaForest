@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ParallaxEffect : MonoBehaviour
@@ -7,30 +5,28 @@ public class ParallaxEffect : MonoBehaviour
     public Camera cam;
     public Transform followTarget;
 
-    private Vector2 startingPosition;
-    private float startingZ;
+    private Vector2 _startingPosition;
+    private float _startingZ;
 
-    Vector2 camMoveSinceStart => (Vector2)cam.transform.position - startingPosition;
+    private Vector2 CamMoveSinceStart => (Vector2)cam.transform.position - _startingPosition;
 
-    float zDistanceFromTarget => transform.position.z - followTarget.transform.position.z;
+    private float ZDistanceFromTarget => transform.position.z - followTarget.transform.position.z;
 
-    float clippingPlane => cam.transform.position.z + (zDistanceFromTarget > 0 ? cam.farClipPlane : cam.nearClipPlane);
-    float parallaxFactor => Mathf.Abs(zDistanceFromTarget) / clippingPlane;
+    private float ClippingPlane => cam.transform.position.z + (ZDistanceFromTarget > 0 ? cam.farClipPlane : cam.nearClipPlane);
+    private float ParallaxFactor => Mathf.Abs(ZDistanceFromTarget) / ClippingPlane;
 
-    void Start()
+    public void Start()
     {
-        startingPosition = transform.position;
-        startingZ = transform.position.z;
+        _startingPosition = transform.position;
+        _startingZ = transform.position.z;
     }
 
-    void Update()
+    public void Update()
     {
         if (followTarget == null)
-        {
             return;
-        }
-        Vector2 newPosition = startingPosition + camMoveSinceStart * parallaxFactor;
 
-        transform.position = new Vector3(newPosition.x, startingPosition.y, startingZ);
+        var newPosition = _startingPosition + CamMoveSinceStart * ParallaxFactor;
+        transform.position = new Vector3(newPosition.x, _startingPosition.y, _startingZ);
     }
 }

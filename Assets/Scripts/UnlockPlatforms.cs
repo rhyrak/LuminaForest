@@ -5,33 +5,33 @@ using UnityEngine;
 
 public class UnlockPlatforms : MonoBehaviourPunCallbacks
 {
-    public static UnlockPlatforms instance;
-
     [Header("Moving Platforms")]
     [SerializeField] private GameObject[] movingPlatforms;  // Reference to the moving platforms
 
-    private bool topDungeonDefeated = false;
-    private bool bottomDungeonDefeated = false;
+    public static UnlockPlatforms Instance;
+    
+    private bool _topDungeonDefeated = false;
+    private bool _bottomDungeonDefeated = false;
 
     private void Awake()
     {
-        if (instance == null)
+        if (Instance == null)
         {
-            instance = this;
+            Instance = this;
         }
     }
 
     // Start is called before the first frame update
-    void Start()
+    public void Start()
     {
         // Ensure all platforms are initially deactivated
         foreach (var platform in movingPlatforms)
         {
             platform.SetActive(false);
         }
-        topDungeonDefeated = (bool)PhotonNetwork.CurrentRoom.
+        _topDungeonDefeated = (bool)PhotonNetwork.CurrentRoom.
             CustomProperties[ConnectionManager.TOP_DUNGEON_DEFEATED];
-        bottomDungeonDefeated = (bool)PhotonNetwork.CurrentRoom.
+        _bottomDungeonDefeated = (bool)PhotonNetwork.CurrentRoom.
             CustomProperties[ConnectionManager.BOTTOM_DUNGEON_DEFEATED];
         TryUnlockPlatforms();
     }
@@ -39,7 +39,7 @@ public class UnlockPlatforms : MonoBehaviourPunCallbacks
     // Unlock the platforms once all dungeons are completed
     private void TryUnlockPlatforms()
     {
-        if (!topDungeonDefeated || !bottomDungeonDefeated)
+        if (!_topDungeonDefeated || !_bottomDungeonDefeated)
             return;
         foreach (var platform in movingPlatforms)
         {
@@ -55,21 +55,19 @@ public class UnlockPlatforms : MonoBehaviourPunCallbacks
         {
             boss.GetComponent<SlimeController>().OnDeath += delegate (SlimeController obj)
             {
-                if (PhotonNetwork.IsMasterClient)
+                if (!PhotonNetwork.IsMasterClient) return;
+                ExitGames.Client.Photon.Hashtable props = new()
                 {
-                    ExitGames.Client.Photon.Hashtable props = new()
-                    {
-                        { ConnectionManager.BOSS_DEFEATED, true }
-                    };
-                    PhotonNetwork.CurrentRoom.SetCustomProperties(props);
-                }
+                    { ConnectionManager.BOSS_DEFEATED, true }
+                };
+                PhotonNetwork.CurrentRoom.SetCustomProperties(props);
             };
         }
     }
 
     public IEnumerator ResetBoss()
     {
-        List<WaveSpawner> dungeons = new List<WaveSpawner>(FindObjectsOfType<WaveSpawner>());
+        var dungeons = new List<WaveSpawner>(FindObjectsOfType<WaveSpawner>());
         foreach (var dungeon in dungeons)
         {
             dungeon.ResetDungeon();
@@ -81,14 +79,12 @@ public class UnlockPlatforms : MonoBehaviourPunCallbacks
 
         yield return new WaitForSeconds(5f);
 
-        if (PhotonNetwork.IsMasterClient)
+        if (!PhotonNetwork.IsMasterClient) yield break;
+        ExitGames.Client.Photon.Hashtable props = new()
         {
-            ExitGames.Client.Photon.Hashtable props = new()
-            {
-                { ConnectionManager.BOSS_DEFEATED, false }
-            };
-            PhotonNetwork.CurrentRoom.SetCustomProperties(props);
-        }
+            { ConnectionManager.BOSS_DEFEATED, false }
+        };
+        PhotonNetwork.CurrentRoom.SetCustomProperties(props);
     }
 
     public override void OnRoomPropertiesUpdate(ExitGames.Client.Photon.Hashtable props)
@@ -97,11 +93,11 @@ public class UnlockPlatforms : MonoBehaviourPunCallbacks
         var bottom = props[ConnectionManager.BOTTOM_DUNGEON_DEFEATED];
         if (top != null)
         {
-            topDungeonDefeated = (bool)top;
+            _topDungeonDefeated = (bool)top;
         }
         if (bottom != null)
         {
-            bottomDungeonDefeated = (bool)bottom;
+            _bottomDungeonDefeated = (bool)bottom;
         }
         // prevent other room prop updates to trigger this logic
         if (top != null || bottom != null)

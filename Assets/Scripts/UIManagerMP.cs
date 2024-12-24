@@ -1,33 +1,34 @@
 using System.Collections.Generic;
 using Photon.Pun;
 using TMPro;
+using UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class UIManagerMP : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI objectives;
-    [SerializeField] private GameObject InfoPanel;
-    [SerializeField] private RectTransform InfoPanelContent;
-    [SerializeField] private GameObject InfoPanelTile;
-    [SerializeField] private TMP_Text InfoPanelRoomName;
+    [SerializeField] private GameObject infoPanel;
+    [SerializeField] private RectTransform infoPanelContent;
+    [SerializeField] private GameObject infoPanelTile;
+    [SerializeField] private TMP_Text infoPanelRoomName;
 
     public void Start()
     {
-        InfoPanelRoomName.text = PhotonNetwork.CurrentRoom.Name;
+        infoPanelRoomName.text = PhotonNetwork.CurrentRoom.Name;
     }
 
     public void Update()
     {
         if (Input.GetKeyDown(KeyCode.Tab))
-            InfoPanel.SetActive(!InfoPanel.activeInHierarchy);
+            infoPanel.SetActive(!infoPanel.activeInHierarchy);
     }
 
     public void FixedUpdate()
     {
         UpdateObjectives();
-        if (InfoPanel.activeInHierarchy)
-            UpdateInfoPanel();
+        if (infoPanel.activeInHierarchy)
+            UpdateinfoPanel();
     }
 
     private void UpdateObjectives()
@@ -60,9 +61,9 @@ public class UIManagerMP : MonoBehaviour
             objectives.text += "...";
     }
 
-    private void UpdateInfoPanel()
+    private void UpdateinfoPanel()
     {
-        foreach (Transform child in InfoPanelContent)
+        foreach (Transform child in infoPanelContent)
         {
             GameObject.Destroy(child.gameObject);
         }
@@ -72,21 +73,19 @@ public class UIManagerMP : MonoBehaviour
         {
             InfoPanelTile.InfoTileData data = new()
             {
-                ping = -1,
-                nickname = player.Nickname,
-                score = -1,
+                Ping = player.Ping,
+                Nickname = player.Nickname,
+                DeathCount = player.DeathCount,
+                Score = player.Score,
             };
-            data.score = player.Score;
-            data.ping = player.Ping;
             playerData.Add(data);
         }
 
-        playerData.Sort((x, y) => y.score - x.score);
+        playerData.Sort((x, y) => y.Score - x.Score);
         foreach (var values in playerData)
         {
-            var tile = Instantiate(InfoPanelTile);
+            var tile = Instantiate(infoPanelTile, infoPanelContent, true);
             tile.GetComponent<InfoPanelTile>().SetValues(values);
-            tile.transform.SetParent(InfoPanelContent);
             tile.transform.localScale = new Vector3(1, 1, 1);
         }
     }

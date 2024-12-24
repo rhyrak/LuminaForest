@@ -3,26 +3,32 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class RoomTile : MonoBehaviour
+namespace UI
 {
-    [SerializeField]
-    private TMP_Text RoomName;
-    [SerializeField]
-    private TMP_Text PlayersInfo;
-    [SerializeField]
-    private Button JoinButton;
-
-    public void SetValues(RoomInfo roomInfo)
+    public class RoomTile : MonoBehaviour
     {
-        RoomName.text = roomInfo.Name;
-        PlayersInfo.text = roomInfo.PlayerCount + "/" + roomInfo.MaxPlayers;
-        JoinButton.onClick.AddListener(() =>
+        [SerializeField]
+        private TMP_Text roomName;
+        [SerializeField]
+        private TMP_Text playersInfo;
+        [SerializeField]
+        private Button joinButton;
+
+        public void SetValues(RoomInfo roomInfo)
         {
-            MenuUIManager.instance.JoinRoom(roomInfo.Name);
-        });
-        if (roomInfo.PlayerCount == roomInfo.MaxPlayers)
-        {
-            JoinButton.enabled = false;
+            roomName.text = roomInfo.Name;
+            if(roomInfo.IsOpen)
+                playersInfo.text = roomInfo.PlayerCount + "/" + roomInfo.MaxPlayers;
+            else
+                playersInfo.text = "Started";
+            joinButton.onClick.AddListener(() =>
+            {
+                MenuUIManager.Instance.JoinRoom(roomInfo.Name);
+            });
+            if (roomInfo.PlayerCount == roomInfo.MaxPlayers)
+            {
+                joinButton.enabled = false;
+            }
         }
     }
 }

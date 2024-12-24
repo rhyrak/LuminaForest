@@ -1,28 +1,33 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class InfoPanelTile : MonoBehaviour
+namespace UI
 {
-    [SerializeField]
-    private TMP_Text Ping;
-    [SerializeField]
-    private TMP_Text Nickname;
-    [SerializeField]
-    private TMP_Text Score;
-
-    public void SetValues(InfoTileData data)
+    public class InfoPanelTile : MonoBehaviour
     {
-        Ping.text = "" + data.ping;
-        Nickname.text = data.nickname;
-        Score.text = "" + data.score;
-    }
+        [SerializeField]
+        private TMP_Text ping;
+        [SerializeField]
+        private TMP_Text nickname;
+        [SerializeField]
+        private TMP_Text deathCount;
+        [SerializeField]
+        private TMP_Text score;
 
-    public struct InfoTileData
-    {
-        public int ping;
-        public string nickname;
-        public int score;
+        public void SetValues(InfoTileData data)
+        {
+            ping.text = "" + data.Ping;
+            nickname.text = data.Nickname;
+            deathCount.text = "" + data.DeathCount;
+            score.text = "" + data.Score;
+        }
+
+        public struct InfoTileData
+        {
+            public int Ping;
+            public string Nickname;
+            public int DeathCount;
+            public int Score;
+        }
     }
 }
